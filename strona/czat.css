@@ -270,28 +270,61 @@
   background: var(--cz-tlo); box-shadow: 0 0 0 1px var(--cz-wlosek), 0 8px 28px var(--cz-cien); }
 .czat-menu-poz { justify-content: flex-start; width: 100%; margin: 0; }
 .czat-do-kosza > svg { color: var(--cz-czerwony); }
-/* „Cofnij” po ruchu rozmowy paruje jak szkło, tak jak w aplikacji (styl.css, „cofnij-paruje”): 0,2 s wpływa, do 1,2 s stoi cały,
-   do 2,5 s tło i cień schodzą (zostaje napis w obrysie, pod nim widać listę), potem napis paruje w górę. Pod kursorem i z fokusem stoi. */
+/* „Cofnij” po ruchu rozmowy wygląda i paruje tak samo jak w aplikacji (styl.css, „cofnij-paruje”, opis tam): błękitne szkło ze strzałką,
+   pod nim welon w kolorze tła czatu, 0,4 s wpływa, do 2,4 s stoi całe, do 4,2 s przejaśnia się, do 6 s paruje. Pod kursorem i z fokusem stoi. */
 .czat-cofnij-pole { position: absolute; left: 0; right: 0; bottom: 20px; z-index: 4; display: flex; justify-content: center; pointer-events: none; }
-.czat-cofnij-pole .czat-pigulka { padding: 0 20px; pointer-events: auto; }
-.czat-cofnij-pole.paruje .czat-pigulka { animation: czat-paruje 4s linear forwards; }
-@media (hover: hover) { .czat-cofnij-pole.paruje .czat-pigulka:hover { animation: none; } }
+.czat-cofnij-pole::before { content: ""; position: absolute; left: 50%; bottom: -12px; width: 300px; height: 72px; margin-left: -150px; opacity: 0; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--cz-tlo) 78%, transparent) 40%, transparent); }
+.czat-cofnij-pole .czat-pigulka {
+  --c-tlo: rgba(227, 239, 253, .94); --c-tlo-jasne: rgba(227, 239, 253, .3);
+  --c-cien: inset 1px 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(0, 113, 227, .26), 0 2px 8px rgba(0, 72, 160, .14), 0 10px 28px rgba(0, 72, 160, .16);
+  --c-cien-lekki: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(0, 113, 227, .2), 0 2px 8px rgba(0, 72, 160, 0), 0 10px 28px rgba(0, 72, 160, 0);
+  --c-cien-zero: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(0, 113, 227, 0), 0 2px 8px rgba(0, 72, 160, 0), 0 10px 28px rgba(0, 72, 160, 0);
+  --c-cien-kursor: inset 1px 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px #0071e3, 0 2px 8px rgba(0, 72, 160, .14), 0 10px 28px rgba(0, 72, 160, .16);
+  z-index: 1; height: 48px; margin: 0; padding: 0 20px 0 16px; border-radius: 24px; pointer-events: auto; color: #0058b9;
+  background-color: var(--c-tlo); background-image: none; -webkit-backdrop-filter: blur(16px) saturate(1.6); backdrop-filter: blur(16px) saturate(1.6); box-shadow: var(--c-cien);
+}
+.czat-cofnij-pole .czat-pigulka > * { pointer-events: none; }
+.czat-cofnij-pole .czat-pigulka > svg { color: #0071e3; }
+@media (prefers-color-scheme: dark) {
+  .czat-cofnij-pole .czat-pigulka {
+    --c-tlo: rgba(16, 38, 63, .94); --c-tlo-jasne: rgba(16, 38, 63, .3);
+    --c-cien: inset 1px 1px 0 rgba(255, 255, 255, .2), 0 0 0 1px rgba(64, 156, 255, .38), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-lekki: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(64, 156, 255, .3), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-zero: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(64, 156, 255, 0), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-kursor: inset 1px 1px 0 rgba(255, 255, 255, .2), 0 0 0 1px #409cff, 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    color: #66b0ff;
+  }
+  .czat-cofnij-pole .czat-pigulka > svg { color: #409cff; }
+}
+@media (hover: hover) { .czat-cofnij-pole .czat-pigulka:not(:disabled):hover { box-shadow: var(--c-cien-kursor); } }
+.czat-cofnij-pole.paruje .czat-pigulka { animation: czat-paruje 6s linear forwards; }
+.czat-cofnij-pole.paruje::before { animation: czat-welon 6s linear forwards; }
+@media (hover: hover) {
+  .czat-cofnij-pole.paruje .czat-pigulka:hover { animation: none; }
+  .czat-cofnij-pole.paruje:has(.czat-pigulka:hover)::before { animation: none; opacity: 1; }
+}
 .czat-cofnij-pole.paruje .czat-pigulka:focus-visible { animation: none; }
+.czat-cofnij-pole.paruje:has(.czat-pigulka:focus-visible)::before { animation: none; opacity: 1; }
 @keyframes czat-paruje {
-  0% { opacity: 0; transform: translateY(8px) scale(.94); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
-  5% { opacity: 1; transform: none; filter: blur(0); }
-  30% { background-color: var(--cz-szary); animation-timing-function: ease-in-out; }
-  62% { opacity: 1; transform: none; filter: blur(0); background-color: color-mix(in srgb, var(--cz-szary) 14%, transparent);
-    box-shadow: inset 1px 1px 0 transparent, inset -1px -1px 0 transparent, 0 0 0 1px var(--cz-wlosek), 0 0 0 transparent, 0 0 0 transparent, 0 0 0 transparent;
-    animation-timing-function: ease-in; }
-  100% { opacity: 0; transform: translateY(-6px) scale(1.06); filter: blur(3px); background-color: transparent;
-    box-shadow: inset 1px 1px 0 transparent, inset -1px -1px 0 transparent, 0 0 0 1px transparent, 0 0 0 transparent, 0 0 0 transparent, 0 0 0 transparent; }
+  0% { opacity: 0; transform: translateY(10px) scale(.96); filter: blur(4px); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  6.7% { opacity: 1; transform: none; filter: blur(0); }
+  40% { opacity: 1; background-color: var(--c-tlo); box-shadow: var(--c-cien); animation-timing-function: ease-in-out; }
+  70% { opacity: 1; transform: none; filter: blur(0); background-color: var(--c-tlo-jasne); box-shadow: var(--c-cien-lekki); animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(1.04); filter: blur(4px); background-color: transparent; box-shadow: var(--c-cien-zero); }
+}
+@keyframes czat-welon {
+  0% { opacity: 0; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  6.7% { opacity: 1; }
+  40% { opacity: 1; animation-timing-function: ease-in-out; }
+  70% { opacity: 0; }
+  100% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .czat-cofnij-pole.paruje .czat-pigulka { animation-name: czat-paruje-cicho; } }
 @keyframes czat-paruje-cicho {
   0% { opacity: 0; }
-  5% { opacity: 1; }
-  30% { background-color: var(--cz-szary); }
-  62% { opacity: 1; background-color: color-mix(in srgb, var(--cz-szary) 14%, transparent); }
-  100% { opacity: 0; background-color: transparent; }
+  6.7% { opacity: 1; }
+  40% { opacity: 1; background-color: var(--c-tlo); box-shadow: var(--c-cien); }
+  70% { opacity: 1; background-color: var(--c-tlo-jasne); box-shadow: var(--c-cien-lekki); }
+  100% { opacity: 0; background-color: transparent; box-shadow: var(--c-cien-zero); }
 }

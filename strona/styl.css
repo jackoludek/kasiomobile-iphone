@@ -250,36 +250,75 @@ main { flex: 1; min-height: 0; position: relative; }
 .karty [role="tab"]:active::after { opacity: 1; transition-duration: 50ms; background: radial-gradient(circle 80px at var(--mx, 50%) var(--my, 50%), var(--plama-wcisk), rgba(255, 255, 255, 0) 75%); }
 /* Ciągnięta zakładka unosi się nad resztą i jedzie pod palcem (przesunięcie i powiększenie o 6% daje app.js), a reszta robi jej miejsce. */
 .karty [role="tab"].ciagniety { z-index: 2; cursor: grabbing; box-shadow: 0 0 0 1px var(--barwa), 0 6px 16px var(--cien-mocny); }
-/* „Cofnij” stoi nad paskiem po przestawieniu zakładek albo pigułek (reguła cofnij-i-ponow: na telefonie nie ma Ctrl+Z). */
+/* „Cofnij” po przestawieniu zakładki, pigułki albo nawigacji (reguła cofnij-i-ponow: na telefonie nie ma Ctrl+Z). Od 26.10.2026
+   wieczorem (Jacek: „musi troszkę wolniej … w innym kolorze … w miejscu, gdzie nic się nie dzieje … musi być widoczna … nie intruzywna.
+   Teraz jest szary na szary … Ten sam pomysł … fajnie to znika, ale jak szkło … Delikatniej”): błękitne szkło z niebieskim napisem
+   i strzałką, jak kółko asystenta, zamiast szarego na szarym. Stoi na środku, 12 px nad nawigacją: tam, gdzie przed chwilą był palec,
+   i tam, gdzie „Cofnij” stawiają Apple i Material. Pod nim leży miękka poświata w kolorze tła (welon), więc nad zdjęciami i kartami robi
+   się w tym miejscu spokojnie, jak pod pływającymi przyciskami w iOS 26. Ruch to szkło, które się skrapla i paruje: 0,4 s wpływa z mgiełki,
+   do 2,4 s stoi całe (chwila na „ojej” i na stuknięcie), do 4,2 s szkło przejaśnia się, a welon znika, więc pod spodem widać treść,
+   a do 6 s napis paruje w górę. Do końca da się w niego stuknąć, a pod kursorem i z fokusem z klawiatury stoi cały. Kontrast (skrypt):
+   napis #0058b9 na #e3effd 5,8:1, strzałka #0071e3 4,0:1; w ciemnym #66b0ff na #10263f 6,7:1 i #409cff 5,4:1. */
 .cofnij-zakladki { position: absolute; left: 0; right: 0; bottom: 100%; display: flex; justify-content: center; padding-bottom: 12px; pointer-events: none; }
-.cofnij-zakladki .pigulka { pointer-events: auto; box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); }
-/* Paruje jak szkło (od 26.10.2026, Jacek: „powinien szybciej robić przezroczysty i fade away … rozpływał się jak woda, szkło
-   przezroczyste … ciekłe szkło, które wyparowuje … ale już rzeczy pod spodem można czytać”): wpływa w 0,2 s, przez sekundę stoi cały,
-   potem tło i cień znikają, więc zostaje sam napis w szklanym obrysie, a pod nim widać treść, a na koniec napis paruje w górę.
-   Razem 4 s (do 26.10.2026 stał 6 s bez zmian). Do końca da się w niego stuknąć. Pod kursorem i z fokusem z klawiatury stoi cały,
-   a po zjechaniu kursora paruje od nowa. Chowa go app.js na koniec animacji. Bez ruchu w systemie zostaje samo przenikanie. */
-.cofnij-zakladki.paruje .pigulka { animation: cofnij-paruje 4s linear forwards; }
-@media (hover: hover) { .cofnij-zakladki.paruje .pigulka:hover { animation: none; } }
-.cofnij-zakladki.paruje .pigulka:focus-visible { animation: none; }
-@keyframes cofnij-paruje {
-  0% { opacity: 0; transform: translateY(8px) scale(.94); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
-  5% { opacity: 1; transform: none; filter: blur(0); }
-  30% { background-color: var(--przycisk); box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); animation-timing-function: ease-in-out; }
-  62% { opacity: 1; transform: none; filter: blur(0); background-color: color-mix(in srgb, var(--przycisk) 14%, transparent); box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--wlos), 0 2px 6px transparent, 0 8px 24px transparent; animation-timing-function: ease-in; }
-  100% { opacity: 0; transform: translateY(-6px) scale(1.06); filter: blur(3px); background-color: transparent; box-shadow: inset 0 .5px 0 transparent, 0 0 0 1px transparent, 0 2px 6px transparent, 0 8px 24px transparent; }
+.cofnij-zakladki::before { content: ""; position: absolute; left: 50%; bottom: 0; width: 300px; height: 72px; margin-left: -150px; opacity: 0; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tlo-pasa, var(--tlo)) 78%, transparent) 40%, transparent); }
+.cofnij-zakladki .pigulka {
+  --c-tlo: rgba(227, 239, 253, .94); --c-tlo-jasne: rgba(227, 239, 253, .3);
+  --c-cien: inset 1px 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(0, 113, 227, .26), 0 2px 8px rgba(0, 72, 160, .14), 0 10px 28px rgba(0, 72, 160, .16);
+  --c-cien-lekki: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(0, 113, 227, .2), 0 2px 8px rgba(0, 72, 160, 0), 0 10px 28px rgba(0, 72, 160, 0);
+  --c-cien-zero: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(0, 113, 227, 0), 0 2px 8px rgba(0, 72, 160, 0), 0 10px 28px rgba(0, 72, 160, 0);
+  --c-cien-kursor: inset 1px 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px #0071e3, 0 2px 8px rgba(0, 72, 160, .14), 0 10px 28px rgba(0, 72, 160, .16);
+  position: relative; z-index: 1; gap: 8px; padding: 0 20px 0 16px; pointer-events: auto; color: #0058b9;
+  background-color: var(--c-tlo); -webkit-backdrop-filter: blur(16px) saturate(1.6); backdrop-filter: blur(16px) saturate(1.6); box-shadow: var(--c-cien);
 }
+.cofnij-zakladki .pigulka > * { pointer-events: none; }
+.cofnij-zakladki .pigulka > svg { flex: none; color: #0071e3; }
+@media (prefers-color-scheme: dark) {
+  .cofnij-zakladki .pigulka {
+    --c-tlo: rgba(16, 38, 63, .94); --c-tlo-jasne: rgba(16, 38, 63, .3);
+    --c-cien: inset 1px 1px 0 rgba(255, 255, 255, .2), 0 0 0 1px rgba(64, 156, 255, .38), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-lekki: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(64, 156, 255, .3), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-zero: inset 1px 1px 0 rgba(255, 255, 255, 0), 0 0 0 1px rgba(64, 156, 255, 0), 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    --c-cien-kursor: inset 1px 1px 0 rgba(255, 255, 255, .2), 0 0 0 1px #409cff, 0 2px 8px rgba(0, 0, 0, 0), 0 10px 28px rgba(0, 0, 0, 0);
+    color: #66b0ff;
+  }
+  .cofnij-zakladki .pigulka > svg { color: #409cff; }
+}
+.cofnij-zakladki.paruje .pigulka { animation: cofnij-paruje 6s linear forwards; }
+.cofnij-zakladki.paruje::before { animation: cofnij-welon 6s linear forwards; }
+@media (hover: hover) {
+  .cofnij-zakladki.paruje .pigulka:hover { animation: none; }
+  .cofnij-zakladki.paruje:has(.pigulka:hover)::before { animation: none; opacity: 1; }
+}
+.cofnij-zakladki.paruje .pigulka:focus-visible { animation: none; }
+.cofnij-zakladki.paruje:has(.pigulka:focus-visible)::before { animation: none; opacity: 1; }
+@keyframes cofnij-paruje {
+  0% { opacity: 0; transform: translateY(10px) scale(.96); filter: blur(4px); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  6.7% { opacity: 1; transform: none; filter: blur(0); }
+  40% { opacity: 1; background-color: var(--c-tlo); box-shadow: var(--c-cien); animation-timing-function: ease-in-out; }
+  70% { opacity: 1; transform: none; filter: blur(0); background-color: var(--c-tlo-jasne); box-shadow: var(--c-cien-lekki); animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(1.04); filter: blur(4px); background-color: transparent; box-shadow: var(--c-cien-zero); }
+}
+@keyframes cofnij-welon {
+  0% { opacity: 0; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  6.7% { opacity: 1; }
+  40% { opacity: 1; animation-timing-function: ease-in-out; }
+  70% { opacity: 0; }
+  100% { opacity: 0; }
+}
+/* Bez ruchu w systemie zostaje samo przenikanie, w tym samym czasie. */
 @media (prefers-reduced-motion: reduce) { .cofnij-zakladki.paruje .pigulka { animation-name: cofnij-paruje-cicho; } }
 @keyframes cofnij-paruje-cicho {
   0% { opacity: 0; }
-  5% { opacity: 1; }
-  30% { background-color: var(--przycisk); }
-  62% { opacity: 1; background-color: color-mix(in srgb, var(--przycisk) 14%, transparent); }
-  100% { opacity: 0; background-color: transparent; }
+  6.7% { opacity: 1; }
+  40% { opacity: 1; background-color: var(--c-tlo); box-shadow: var(--c-cien); }
+  70% { opacity: 1; background-color: var(--c-tlo-jasne); box-shadow: var(--c-cien-lekki); }
+  100% { opacity: 0; background-color: transparent; box-shadow: var(--c-cien-zero); }
 }
 /* Pigułka pod kursorem dostaje obwódkę w akcencie, jak przyciski w Ofertach. Napis stoi w miejscu (do 20.10.2026 unosiła się o 1 px). */
 @media (hover: hover) {
   .pigulka:hover { box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--akcent), 0 1px 2px var(--cien), 0 2px 6px var(--cien); }
-  .cofnij-zakladki .pigulka:hover { box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--akcent), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); }
+  .cofnij-zakladki .pigulka:hover { box-shadow: var(--c-cien-kursor); }
 }
 
 /* Otwarte okno w stronie (szczegóły auta, filtry, galeria) dostaje cały ekran: bez nagłówka i bez zakładek. */
@@ -297,6 +336,7 @@ body.okno main { margin-bottom: env(safe-area-inset-bottom); }
   .karty [role="tab"] { flex-direction: row; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 20px; font-size: 16px; }
   .znak { width: 24px; height: 24px; }
   .cofnij-zakladki { top: 100%; bottom: auto; padding: 12px 0 0; }
+  .cofnij-zakladki::before { top: 0; bottom: auto; }
 }
 @media (width > 1100px) { .dol { padding-left: calc(var(--km-x0) + var(--km-kolumna)); } }
 /* Od 1240 px zakładki mieszczą się w nagłówku, nad kolumną aut, na osi logo i kółek. */
@@ -373,11 +413,12 @@ body, .karty [role="tab"], .podwidoki { --barwa: var(--gleboka, var(--akcent)); 
 body { --tlo-pasa: var(--tlo); background-color: var(--tlo-pasa); }
 /* Kolorowe tło jako niespodzianka (od 26.10.2026; Jacek: „ten kolorowy … jest Easter … przełącznik … pod samym” logo): przytrzymanie logo
    przez 0,6 s włącza i wyłącza odcień 10% barwy wybranej zakładki na całym ekranie, także pod stronami (app.js, „Niespodzianka”).
-   Domyślnie biel, w ciemnym motywie zawsze czerń. */
+   Domyślnie biel, w ciemnym motywie zawsze czerń. Odcień trwa do zamknięcia aplikacji, a każdy start jest śnieżnobiały (od 26.10.2026,
+   Jacek: „chodziło o ten biały, żeby to było śnieżnobiałe”). Odcienie idą za barwami zakładek: Oferty pomarańczowe, Finanse zielone. */
 @media (prefers-color-scheme: light) {
-  body.kolorowo[data-zakladka="katalog"] { --tlo-pasa: #ebf9ee; }
+  body.kolorowo[data-zakladka="katalog"] { --tlo-pasa: #fff4e6; }
   body.kolorowo[data-zakladka="modele"] { --tlo-pasa: #e6f2ff; }
-  body.kolorowo[data-zakladka="kredyt"] { --tlo-pasa: #fff4e6; }
+  body.kolorowo[data-zakladka="kredyt"] { --tlo-pasa: #ebf9ee; }
   body.kolorowo[data-zakladka="poradnik"] { --tlo-pasa: #f7eefc; }
 }
 @media (prefers-color-scheme: dark) {

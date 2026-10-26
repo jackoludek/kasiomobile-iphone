@@ -480,8 +480,9 @@
   }
   addEventListener('resize', ustawSiatke);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => requestAnimationFrame(ustawSiatke));
-  // Kolorowe tło (niespodzianka pod logo, niżej) zostaje zapamiętane.
-  document.body.classList.toggle('kolorowo', pamiec.czytaj('kolorowo', false) === true);
+  // Kolorowe tło (niespodzianka pod logo, niżej) trwa do zamknięcia aplikacji, a każdy start jest śnieżnobiały (od 26.10.2026, Jacek:
+  // „chodziło o ten biały, żeby to było śnieżnobiałe”; do tego dnia odcień zostawał w pamięci telefonu). Dawny zapis znika.
+  pamiec.usun('kolorowo');
   LISTA_STRON.forEach(([, s]) => s.el.addEventListener('load', ustawSiatke));
 
   // Otwarte okno w stronie (filtry, szczegóły auta, galeria) dostaje cały ekran: nagłówek, pigułki i zakładki chowają się,
@@ -680,7 +681,7 @@
   // miejsce (240 ms). Wystarczy pociągnąć w bok: palcem o 10 px (bardziej w bok niż w pionie), myszą o 6 px. Zakładkę można też
   // przytrzymać palcem 450 ms, kółka nie, bo przytrzymane kółko pokazuje dymek. Stuknięcie i ruch w pionie niczego nie przestawiają.
   // W drzewie strony przechodzi sąsiad, a nie ciągnięty element: przeniesiony traciłby przechwycenie wskaźnika. Gdy ciągnięcie
-  // przerwie system (pointercancel), kolejność wraca. Z klawiatury Alt+← →. Kolejność zostaje w telefonie, przez 4 sekundy stoi
+  // przerwie system (pointercancel), kolejność wraca. Z klawiatury Alt+← →. Kolejność zostaje w telefonie, przez 6 sekund stoi
   // „Cofnij”, a Ctrl+Z i Ctrl+Y (także Ctrl+Shift+Z) cofają i ponawiają przestawienia poza polem tekstowym (reguła cofnij-i-ponow).
   const ogloszenie = document.createElement('p');
   ogloszenie.className = 'ukryte';
@@ -690,7 +691,7 @@
   const cofnijPole = $('.cofnij-zakladki'), przyciskCofnij = $('#cofnij-zakladki');
   const PRZESTAWIENIA = { wstecz: [], naprzod: [] };
   let zegarCofnij = 0;
-  // „Cofnij” paruje jak szkło (od 26.10.2026, styl.css, „cofnij-paruje”, 4 s) i chowa się na koniec animacji. Zegar zostaje tylko
+  // „Cofnij” paruje jak szkło (od 26.10.2026, styl.css, „cofnij-paruje”, 6 s) i chowa się na koniec animacji. Zegar zostaje tylko
   // na wypadek, gdyby animacji nie było wcale.
   function pokazCofnij(rzad) {
     clearTimeout(zegarCofnij);
@@ -700,7 +701,7 @@
     przyciskCofnij.setAttribute('aria-label', rzad.cofnij);
     void cofnijPole.offsetWidth;
     cofnijPole.classList.add('paruje');
-    if (getComputedStyle(przyciskCofnij).animationName === 'none' && !przyciskCofnij.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnij(null), 4000);
+    if (getComputedStyle(przyciskCofnij).animationName === 'none' && !przyciskCofnij.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnij(null), 6000);
   }
   przyciskCofnij.addEventListener('animationend', (e) => { if (e.animationName.startsWith('cofnij-paruje')) pokazCofnij(null); });
   // Cofa albo ponawia ostatnie przestawienie, w którymkolwiek rzędzie. Oddaje false, gdy nie było czego.
@@ -926,7 +927,6 @@
         przytrzymane = true;
         const wl = !document.body.classList.contains('kolorowo');
         document.body.classList.toggle('kolorowo', wl);
-        pamiec.zapisz('kolorowo', wl);
         ustawSiatke();
         logo.classList.remove('niespodzianka');
         void logo.offsetWidth;
@@ -1239,7 +1239,7 @@
   // górnym brzegiem w połowie ekranu, bo wyżej treść zrobiłaby się za niska. Od 0,25 s przytrzymania nad pasem wypełnia się od lewej do
   // prawej pasek postępu ze strzałkami w górę i w dół (Jacek: strzałki „muszą być widoczne … w dół i w górę”, a zapalanie po kolei „nie
   // jest oczywiste”). Ruch o ponad 10 px przed czasem przerywa przytrzymanie, a ruch w bok przestawia zakładki i pigułki jak zawsze.
-  // Miejsce zostaje w telefonie (pasek-wysokosc: piksele nad zwykłym miejscem, ujemne pod nim), przez 4 s stoi „Cofnij” (paruje jak szkło), a Ctrl+Z
+  // Miejsce zostaje w telefonie (pasek-wysokosc: piksele nad zwykłym miejscem, ujemne pod nim), przez 6 s stoi „Cofnij” (paruje jak szkło), a Ctrl+Z
   // i Ctrl+Y cofają i ponawiają. Z klawiatury Alt+↑ i Alt+↓ na zakładce albo pigułce przesuwają o 1 px.
   const dol = $('.dol'), waski = matchMedia('(max-width: 759px)');
   const PRZENIES_MS = 2000, POSTEP_MS = 250, PROG_PASKA = 10, KROK = 1, RUCH_PASKA = { duration: 240, easing: 'cubic-bezier(0.2, 0, 0, 1)' };

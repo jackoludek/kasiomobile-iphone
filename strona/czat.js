@@ -73,6 +73,8 @@
     archiwum: '<path fill-rule="evenodd" d="M4 4.2h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zm.9 1.9v1.2h14.2V6.1zM4.9 11.1h1.9v6.8h10.4v-6.8h1.9v7.7a1 1 0 0 1-1 1H5.9a1 1 0 0 1-1-1zm4.6 1.7h5v1.9h-5z"/>',
     kosz: '<path fill-rule="evenodd" d="M9.5 3.5h5l.8 1.5H19v1.9H5V5h3.7zM6.4 8.4h11.2l-.9 10.4a1.9 1.9 0 0 1-1.9 1.7H9.2a1.9 1.9 0 0 1-1.9-1.7zm2.1 1.9.7 8.3h5.6l.7-8.3z"/>',
     wstecz: '<path d="M14.7 6.3 9 12l5.7 5.7 1.4-1.4-4.3-4.3 4.3-4.3z"/>',
+    // Strzałka „Cofnij”, ta sama co w aplikacji (index.html), środek rysunku w punkcie 12, 12.
+    cofnij: '<path d="M9.75 4.75 5.25 9.25l4.5 4.5M5.75 9.25h8a5 5 0 0 1 0 10h-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   };
   const ikona = (n, r = 20) => `<svg width="${r}" height="${r}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${IKONY[n]}</svg>`;
 
@@ -144,8 +146,9 @@
     mikB.hidden = true;
     const wyslijB = przycisk('wyslij', 'Wyślij', 'czat-wyslij');
     const forma = el('form', { class: 'czat-pole' }, pole, mikB, wyslijB);
-    // „Cofnij” po przeniesieniu rozmowy do kosza albo archiwum (od 26.10.2026): nad dołem czatu, paruje w 4 s jak „Cofnij” w aplikacji.
-    const cofnijC = el('button', { type: 'button', class: 'czat-pigulka czat-cofnij', text: 'Cofnij' });
+    // „Cofnij” po przeniesieniu rozmowy do kosza albo archiwum (od 26.10.2026): nad dołem czatu, paruje w 6 s jak „Cofnij” w aplikacji
+    // (błękitne szkło ze strzałką, styl w czat.css).
+    const cofnijC = pigulka('cofnij', 'Cofnij', 'czat-cofnij');
     const cofnijPole = el('div', { class: 'czat-cofnij-pole', hidden: true }, cofnijC);
     korzen.append(gora, lista, stanL, forma, cofnijPole);
     if (zaslona) document.body.append(zaslona);
@@ -400,7 +403,7 @@
       cofnijC.setAttribute('aria-label', opis);
       void cofnijPole.offsetWidth;
       cofnijPole.classList.add('paruje');
-      if (getComputedStyle(cofnijC).animationName === 'none' && !cofnijC.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnijCzat(null), 4000);
+      if (getComputedStyle(cofnijC).animationName === 'none' && !cofnijC.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnijCzat(null), 6000);
     }
     function zamknijMenu(fokus) {
       if (!menuR) return false;
