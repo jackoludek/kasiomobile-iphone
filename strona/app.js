@@ -277,7 +277,7 @@
     if (!d || d.kmSwiatlo) return;
     d.kmSwiatlo = true;
     d.addEventListener('pointerdown', (e) => {
-      const b = e.target && e.target.closest ? e.target.closest('button, .przycisk, select') : null;
+      const b = e.target && e.target.closest ? e.target.closest('button, .przycisk, select, summary') : null;
       if (!b) return;
       const r = b.getBoundingClientRect();
       b.style.setProperty('--mx', Math.round(e.clientX - r.left) + 'px');
@@ -356,7 +356,9 @@
     // w siatce aplikacji, czyli od tej samej krawędzi co logo (strona z programu 13 ma tam kolumnę 87,5%).
     poradnik: 'main>header.hero{padding-top:16px!important}'
       + `@media (max-width:734px){main{box-sizing:border-box!important;width:100%!important;padding-left:${L}!important;padding-right:${P}!important}`
-      + '#czytaj-calosc{box-sizing:border-box!important;width:100%!important;justify-content:center!important}}' + SZKLANY('#czytaj-calosc'),
+      + '#czytaj-calosc,.wiecej>summary{box-sizing:border-box!important;width:100%!important;justify-content:center!important}}' + SZKLANY('#czytaj-calosc')
+      // „Pokaż …” w poradniku (od 26.10.2026, zwijane bloki <details class="wiecej"> z programu 13): to samo szkło co „Czytaj całość”.
+      + SZKLANY('.wiecej>summary'),
   };
   // Tło strony takie samo jak nagłówek i nawigacja: we wszystkich czterech zakładkach biel, w ciemnym czerń (od 26.10.2026; Jacek po próbie
   // z odcieniami barw zakładek: „wracamy do bieli wszystkich czterech takiej samej”). Kolor i znacznik data-km-odcien wpisuje ustawSiatke,
@@ -678,7 +680,7 @@
   // miejsce (240 ms). Wystarczy pociągnąć w bok: palcem o 10 px (bardziej w bok niż w pionie), myszą o 6 px. Zakładkę można też
   // przytrzymać palcem 450 ms, kółka nie, bo przytrzymane kółko pokazuje dymek. Stuknięcie i ruch w pionie niczego nie przestawiają.
   // W drzewie strony przechodzi sąsiad, a nie ciągnięty element: przeniesiony traciłby przechwycenie wskaźnika. Gdy ciągnięcie
-  // przerwie system (pointercancel), kolejność wraca. Z klawiatury Alt+← →. Kolejność zostaje w telefonie, przez 6 sekund stoi
+  // przerwie system (pointercancel), kolejność wraca. Z klawiatury Alt+← →. Kolejność zostaje w telefonie, przez 4 sekundy stoi
   // „Cofnij”, a Ctrl+Z i Ctrl+Y (także Ctrl+Shift+Z) cofają i ponawiają przestawienia poza polem tekstowym (reguła cofnij-i-ponow).
   const ogloszenie = document.createElement('p');
   ogloszenie.className = 'ukryte';
@@ -688,13 +690,19 @@
   const cofnijPole = $('.cofnij-zakladki'), przyciskCofnij = $('#cofnij-zakladki');
   const PRZESTAWIENIA = { wstecz: [], naprzod: [] };
   let zegarCofnij = 0;
+  // „Cofnij” paruje jak szkło (od 26.10.2026, styl.css, „cofnij-paruje”, 4 s) i chowa się na koniec animacji. Zegar zostaje tylko
+  // na wypadek, gdyby animacji nie było wcale.
   function pokazCofnij(rzad) {
     clearTimeout(zegarCofnij);
+    cofnijPole.classList.remove('paruje');
     cofnijPole.hidden = !rzad;
     if (!rzad) return;
     przyciskCofnij.setAttribute('aria-label', rzad.cofnij);
-    zegarCofnij = setTimeout(() => pokazCofnij(null), 6000);
+    void cofnijPole.offsetWidth;
+    cofnijPole.classList.add('paruje');
+    if (getComputedStyle(przyciskCofnij).animationName === 'none' && !przyciskCofnij.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnij(null), 4000);
   }
+  przyciskCofnij.addEventListener('animationend', (e) => { if (e.animationName.startsWith('cofnij-paruje')) pokazCofnij(null); });
   // Cofa albo ponawia ostatnie przestawienie, w którymkolwiek rzędzie. Oddaje false, gdy nie było czego.
   function cofnijPrzestawienie(ponow) {
     const krok = (ponow ? PRZESTAWIENIA.naprzod : PRZESTAWIENIA.wstecz).pop();
@@ -960,6 +968,32 @@
       zegar = setInterval(pytaj, 250);
     });
   }
+  // Marki z filtrów Ogłoszeń też idą do adresu (od 26.10.2026, Jacek w Fiszkach na pytanie, czy link ma iść za filtrami: „Tak, za
+  // filtrami”). Zakresy (cena, rocznik, przebieg) dokłada sam Skaner, a marki bierzemy z jego zapamiętanych filtrów: sessionStorage
+  // „we-filtry2:<misja>”, pole „marki” (ramka ma to samo pochodzenie i tę samą kartę co aplikacja). Dotyczy tylko wyszukiwań bez
+  // własnych marek („Pomorskie, każda marka”), a bez wybranej marki adres zostaje taki, jaki dał Skaner. Marka idzie do adresu tak,
+  // jak pisze ją Otomoto: małe litery bez ogonków, myślnik zamiast spacji (Škoda → skoda, Land Rover → land-rover, DS → ds-automobiles).
+  function zMarkami(okno, w) {
+    let marki = [];
+    try {
+      const s = okno.sessionStorage;
+      for (let i = 0; i < s.length; i++) {
+        if (!String(s.key(i)).startsWith('we-filtry2:')) continue;
+        const m = JSON.parse(s.getItem(s.key(i)) || '{}').marki;
+        if (Array.isArray(m)) marki = m.filter((x) => typeof x === 'string' && x.trim());
+        break;
+      }
+    } catch { /* ramka bez dostępu: adres ze Skanera */ }
+    let u;
+    try { u = new URL(w.adres); } catch { return w; }
+    if (!marki.length || [...u.searchParams.keys()].some((k) => k.startsWith('search[filter_enum_make]'))) return w;
+    marki.forEach((m, i) => {
+      const s = m.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      u.searchParams.set(`search[filter_enum_make][${i}]`, s === 'ds' ? 'ds-automobiles' : s);
+    });
+    const ktore = marki.length > 3 ? `${marki.slice(0, 3).join(', ')} i inne` : marki.length > 1 ? `${marki.slice(0, -1).join(', ')} i ${marki[marki.length - 1]}` : marki[0];
+    return { nazwa: `${w.nazwa.replace(/,?\s*każda marka\s*$/i, '')}, ${ktore}`, adres: u.toString() };
+  }
   async function otworzMenuOtomoto(zrodlo) {
     if (menuOtomoto) { zamknijMenuOtomoto(true); return; }
     zrodloMenu = zrodlo;
@@ -968,7 +1002,7 @@
     const okno = s.el.contentWindow;
     const wszystkie = okno ? await pytajOWyszukiwania(okno) : [];
     const pomorskie = wszystkie.filter((w) => /^pomorskie/i.test(w.nazwa.trim()));
-    const lista = pomorskie.length ? pomorskie : wszystkie;
+    const lista = (pomorskie.length ? pomorskie : wszystkie).map((w) => zMarkami(okno, w));
     if (!lista.length || menuOtomoto) return;
     menuOtomoto = el('div', { class: 'menu-otomoto', role: 'menu', 'aria-label': 'Otomoto' }, el('p', { class: 'menu-otomoto-tytul', 'aria-hidden': 'true', text: 'Otomoto' }));
     for (const w of lista) {
@@ -1205,7 +1239,7 @@
   // górnym brzegiem w połowie ekranu, bo wyżej treść zrobiłaby się za niska. Od 0,25 s przytrzymania nad pasem wypełnia się od lewej do
   // prawej pasek postępu ze strzałkami w górę i w dół (Jacek: strzałki „muszą być widoczne … w dół i w górę”, a zapalanie po kolei „nie
   // jest oczywiste”). Ruch o ponad 10 px przed czasem przerywa przytrzymanie, a ruch w bok przestawia zakładki i pigułki jak zawsze.
-  // Miejsce zostaje w telefonie (pasek-wysokosc: piksele nad zwykłym miejscem, ujemne pod nim), przez 6 s stoi „Cofnij”, a Ctrl+Z
+  // Miejsce zostaje w telefonie (pasek-wysokosc: piksele nad zwykłym miejscem, ujemne pod nim), przez 4 s stoi „Cofnij” (paruje jak szkło), a Ctrl+Z
   // i Ctrl+Y cofają i ponawiają. Z klawiatury Alt+↑ i Alt+↓ na zakładce albo pigułce przesuwają o 1 px.
   const dol = $('.dol'), waski = matchMedia('(max-width: 759px)');
   const PRZENIES_MS = 2000, POSTEP_MS = 250, PROG_PASKA = 10, KROK = 1, RUCH_PASKA = { duration: 240, easing: 'cubic-bezier(0.2, 0, 0, 1)' };

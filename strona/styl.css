@@ -250,9 +250,32 @@ main { flex: 1; min-height: 0; position: relative; }
 .karty [role="tab"]:active::after { opacity: 1; transition-duration: 50ms; background: radial-gradient(circle 80px at var(--mx, 50%) var(--my, 50%), var(--plama-wcisk), rgba(255, 255, 255, 0) 75%); }
 /* Ciągnięta zakładka unosi się nad resztą i jedzie pod palcem (przesunięcie i powiększenie o 6% daje app.js), a reszta robi jej miejsce. */
 .karty [role="tab"].ciagniety { z-index: 2; cursor: grabbing; box-shadow: 0 0 0 1px var(--barwa), 0 6px 16px var(--cien-mocny); }
-/* „Cofnij” stoi 6 sekund nad paskiem po przestawieniu zakładek (reguła cofnij-i-ponow: na telefonie nie ma Ctrl+Z). */
+/* „Cofnij” stoi nad paskiem po przestawieniu zakładek albo pigułek (reguła cofnij-i-ponow: na telefonie nie ma Ctrl+Z). */
 .cofnij-zakladki { position: absolute; left: 0; right: 0; bottom: 100%; display: flex; justify-content: center; padding-bottom: 12px; pointer-events: none; }
 .cofnij-zakladki .pigulka { pointer-events: auto; box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); }
+/* Paruje jak szkło (od 26.10.2026, Jacek: „powinien szybciej robić przezroczysty i fade away … rozpływał się jak woda, szkło
+   przezroczyste … ciekłe szkło, które wyparowuje … ale już rzeczy pod spodem można czytać”): wpływa w 0,2 s, przez sekundę stoi cały,
+   potem tło i cień znikają, więc zostaje sam napis w szklanym obrysie, a pod nim widać treść, a na koniec napis paruje w górę.
+   Razem 4 s (do 26.10.2026 stał 6 s bez zmian). Do końca da się w niego stuknąć. Pod kursorem i z fokusem z klawiatury stoi cały,
+   a po zjechaniu kursora paruje od nowa. Chowa go app.js na koniec animacji. Bez ruchu w systemie zostaje samo przenikanie. */
+.cofnij-zakladki.paruje .pigulka { animation: cofnij-paruje 4s linear forwards; }
+@media (hover: hover) { .cofnij-zakladki.paruje .pigulka:hover { animation: none; } }
+.cofnij-zakladki.paruje .pigulka:focus-visible { animation: none; }
+@keyframes cofnij-paruje {
+  0% { opacity: 0; transform: translateY(8px) scale(.94); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  5% { opacity: 1; transform: none; filter: blur(0); }
+  30% { background-color: var(--przycisk); box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); animation-timing-function: ease-in-out; }
+  62% { opacity: 1; transform: none; filter: blur(0); background-color: color-mix(in srgb, var(--przycisk) 14%, transparent); box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--wlos), 0 2px 6px transparent, 0 8px 24px transparent; animation-timing-function: ease-in; }
+  100% { opacity: 0; transform: translateY(-6px) scale(1.06); filter: blur(3px); background-color: transparent; box-shadow: inset 0 .5px 0 transparent, 0 0 0 1px transparent, 0 2px 6px transparent, 0 8px 24px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .cofnij-zakladki.paruje .pigulka { animation-name: cofnij-paruje-cicho; } }
+@keyframes cofnij-paruje-cicho {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  30% { background-color: var(--przycisk); }
+  62% { opacity: 1; background-color: color-mix(in srgb, var(--przycisk) 14%, transparent); }
+  100% { opacity: 0; background-color: transparent; }
+}
 /* Pigułka pod kursorem dostaje obwódkę w akcencie, jak przyciski w Ofertach. Napis stoi w miejscu (do 20.10.2026 unosiła się o 1 px). */
 @media (hover: hover) {
   .pigulka:hover { box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--akcent), 0 1px 2px var(--cien), 0 2px 6px var(--cien); }

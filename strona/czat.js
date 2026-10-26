@@ -234,7 +234,7 @@
       // Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”), ten sam co mały przy polu pytania. Od tego samego
       // dnia to oko w stylu HAL 9000 (Jacek: „ever so slightly … reminiscent of HAL z Odysei Kosmicznej 2001”), a podpis mówi, co robi.
       const duzy = el('button', { type: 'button', class: 'czat-duzy-mik', 'aria-label': 'Powiedz pytanie', html: '<span class="czat-oko" aria-hidden="true"></span><span>Powiedz pytanie</span>' });
-      duzy.hidden = !(mozeNagrywac() && pamiec.czytaj('glos', null) !== false);
+      duzy.hidden = !(mozeNagrywac() && glosWolno());
       duzy.addEventListener('click', () => (glos.stan === 'nic' ? glosStart() : glosStop(true)));
       return el('div', { class: 'czat-pusto' }, el('p', { text: ZDANIA.pusto }), duzy, rzad);
     }
@@ -341,7 +341,7 @@
       let d;
       try { d = JSON.parse(w.message); } catch { return; }
       if (!d || typeof d.id !== 'string') return;
-      if (typeof d.glos === 'boolean') { pamiec.zapisz('glos', d.glos); pokazMik(); }
+      if (typeof d.glos === 'boolean') { zapiszGlos(d.glos); pokazMik(); }
       const c = czeka.get(d.id);
       if (!c) return;
       czeka.delete(d.id);
@@ -556,10 +556,16 @@
     const natywny = o.glosNatywny || null;
     const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true };
     const glos = { stan: 'nic', ws: null, rec: null, media: null, gotowe: '', tym: '', wyslij: true, zegar: 0 };
+    // „glos: false” (komputer nie da klucza) chowa mikrofon na 20 minut, a nie na zawsze (od 26.10.2026: na Redmi mikrofon został
+    // schowany od nocy, kiedy klucza jeszcze nie było, choć komputer dostał go kilka godzin później; Jacek: „rozpoznał moje pisanie,
+    // ale nie gadanie”). W pamięci stoi chwila odmowy, a dawne „false” nic już nie chowa.
+    const BEZ_GLOSU_MS = 20 * 60000;
+    const glosWolno = () => { const v = pamiec.czytaj('glos', null); return !(typeof v === 'number' && Date.now() - v < BEZ_GLOSU_MS); };
+    const zapiszGlos = (jest) => pamiec.zapisz('glos', jest ? true : Date.now());
     const mozeNagrywac = () => Boolean(natywny)
       || Boolean(o.mikrofon && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder && window.WebSocket);
     function pokazMik() {
-      mikB.hidden = !(mozeNagrywac() && pamiec.czytaj('glos', null) !== false);
+      mikB.hidden = !(mozeNagrywac() && glosWolno());
       for (const b of lista.querySelectorAll('.czat-duzy-mik')) b.hidden = mikB.hidden;
     }
     function pokazGlos() {
@@ -582,7 +588,7 @@
       if (k && k.klucz && Date.parse(k.do) - Date.now() > 120000) return k.klucz;
       const d = await zapytaj({ co: 'klucz' }, KLUCZ_MS);
       if (d && d.klucz) { pamiec.zapisz('klucz', d.jednorazowy ? null : { klucz: d.klucz, do: d.do }); glos.konf = d.konfiguracja || null; return d.klucz; }
-      if (d && d.glos === false) { pamiec.zapisz('glos', false); pokazMik(); }
+      if (d && d.glos === false) { zapiszGlos(false); pokazMik(); }
       throw new Error(d && d.blad ? d.blad : ZDANIA.klucz);
     }
     async function glosStart() {
