@@ -14,6 +14,7 @@
   --cz-c3d: inset 1px 1px 0 rgba(255, 255, 255, .95), inset -1px -1px 0 rgba(0, 0, 0, .07), 0 0 0 .5px rgba(0, 0, 0, .16), 1px 1px 2px rgba(0, 0, 0, .12), 3px 3px 8px rgba(0, 0, 0, .1), 6px 6px 18px rgba(0, 0, 0, .06);
   --cz-c3d-b: inset 1px 1px 0 rgba(255, 255, 255, .38), inset -1px -1px 0 rgba(0, 0, 0, .2), 1px 1px 2px rgba(0, 0, 0, .16), 3px 3px 10px rgba(0, 113, 227, .3), 6px 6px 18px rgba(0, 0, 0, .06);
   --cz-otworz-szklo: rgba(220, 236, 252, .86);
+  --cz-na-wybranej: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   .czat, .czat-zaslona, .czat-dymek, .czat-otworz {
@@ -26,6 +27,7 @@
     --cz-c3d: inset 1px 1px 0 rgba(255, 255, 255, .24), inset -1px -1px 0 rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .2);
     --cz-c3d-b: inset 1px 1px 0 rgba(255, 255, 255, .42), inset -1px -1px 0 rgba(0, 0, 0, .28), 3px 3px 14px rgba(10, 132, 255, .3);
     --cz-otworz-szklo: rgba(15, 37, 61, .86);
+    --cz-na-wybranej: #000000;
   }
 }
 .czat { display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; background: var(--cz-tlo); color: var(--cz-tekst);
@@ -55,7 +57,32 @@
 .czat-strona { position: fixed; inset: 0; padding: var(--km-gora, env(safe-area-inset-top, 0px)) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
 @media (prefers-reduced-motion: reduce) { .czat-arkusz, .czat-zaslona { transition: none; } }
 
-.czat-gora { flex: none; position: relative; display: flex; justify-content: flex-end; align-items: center; min-height: 52px; padding: 4px 8px 0; }
+.czat-gora { flex: none; position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 52px; padding: 4px 8px 0 16px; }
+/* Historia i Nowa rozmowa (od 26.10.2026): przyciski z napisem w szkle z 45° światłem, co 8 px, cel 48 px. Historia włączona stoi
+   w akcencie z napisem na barwie (biały 4,7:1, w ciemnym czarny 5,8:1). Bez rozmowy Nowa rozmowa jest przygaszona. */
+.czat-gora-lewo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.czat-pigulka { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 40px; margin: 4px 0; padding: 0 16px 0 12px; border: 0; border-radius: 20px;
+  background-color: var(--cz-szary); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); color: var(--cz-tekst);
+  font: inherit; font-size: 15px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), background-color 120ms ease, box-shadow 120ms ease; }
+.czat-pigulka::before { content: ""; position: absolute; inset: -4px 0; }
+.czat-pigulka > svg { flex: none; }
+.czat-pigulka[aria-pressed="true"] { background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); box-shadow: var(--cz-c3d-b); color: var(--cz-na-wybranej); }
+@media (hover: hover) { .czat-pigulka:not(:disabled):hover { box-shadow: 0 0 0 1px var(--cz-akcent), var(--cz-c3d); } }
+.czat-pigulka:not(:disabled):active { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-pigulka:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: 2px; }
+.czat-pigulka:disabled { opacity: .45; cursor: default; }
+@media (max-width: 359px) { .czat-pigulka { padding: 0 12px 0 10px; font-size: 14px; } }
+/* Historia: wcześniejsze rozmowy jako karty-przyciski co 12 px, od najnowszej. Pierwsze pytanie w jednej linii, pod nim kiedy i ile pytań. */
+.czat-rozmowy { display: grid; gap: 12px; padding: 4px 0 8px; }
+.czat-rozmowa { position: relative; display: grid; gap: 6px; width: 100%; margin: 0; padding: 14px 16px; border: 0; border-radius: 18px; text-align: left;
+  background-color: var(--cz-pod); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); color: var(--cz-tekst); font: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), box-shadow 120ms ease; }
+.czat-rozmowa-tytul { font-size: 16px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.czat-rozmowa-kiedy { color: var(--cz-tekst2); font-size: 13px; line-height: 1.3; }
+@media (hover: hover) { .czat-rozmowa:hover { box-shadow: 0 0 0 1px var(--cz-akcent), var(--cz-c3d); } }
+.czat-rozmowa:active { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-rozmowa:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: 2px; }
 .czat-arkusz .czat-gora { touch-action: none; }
 .czat-uchwyt { position: absolute; top: 6px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--cz-ramka); }
 
@@ -89,7 +116,12 @@
 .czat-wyslij:disabled { color: var(--cz-tekst2); cursor: default; }
 .czat-wyslij:disabled::before { background: var(--cz-szary); box-shadow: 0 0 0 .5px var(--cz-wlosek); }
 .czat-mik.nagrywa { color: #ffffff; }
-.czat-mik.nagrywa::before { background-color: var(--cz-czerwony); background-image: var(--cz-lico-b); }
+/* Nagrywający mały mikrofon to też oko HAL-a (od 26.10.2026): czerwony środek w czarnej soczewce i srebrnym brzegu, bez znaku mikrofonu. */
+.czat-mik.nagrywa::before { background-color: var(--cz-czerwony);
+  background-image: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, .75) 0 1px, rgba(255, 255, 255, 0) 4px),
+    radial-gradient(circle, #ffd88a 0 4%, #ff5428 10%, #e10a0a 22%, #8c0000 40%, #2b0202 60%, #0a0a0a 74%);
+  box-shadow: 0 0 0 2px #c7c7cc, 0 0 0 2.5px rgba(0, 0, 0, .3); }
+.czat-mik.nagrywa > svg { opacity: 0; }
 /* Puls wokół nagrywającego mikrofonu to sygnał stanu, więc zostaje także przy ograniczonym ruchu. */
 .czat-mik.nagrywa::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; animation: czat-puls 1.4s ease-out infinite; }
 @keyframes czat-puls { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cz-czerwony) 55%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
@@ -144,17 +176,27 @@
 }
 .czat-pusto { margin: auto 0; display: grid; justify-items: center; gap: 24px; padding: 16px 0 24px; text-align: center; color: var(--cz-tekst2); }
 .czat-pusto > p { max-width: 22em; margin: 0; }
-/* Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”): kółko 72 px w akcencie z głębią, pod nim podpis.
-   Nagrywa: czerwone z pulsem, jak mały mikrofon przy polu. Biały znak na #0071e3 ma 4,7:1. */
-.czat-duzy-mik { display: grid; justify-items: center; gap: 8px; margin: 0; padding: 0; border: 0; background: none; color: var(--cz-tekst);
+/* Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”), od tego samego dnia oko w stylu HAL 9000
+   z „2001: Odysei kosmicznej” (Jacek: „ever so slightly … reminiscent of HAL”): czarna soczewka z czerwonym środkiem w srebrnym
+   pierścieniu, blask z lewego górnego rogu pod 45° i cień w prawo w dół jak na przyciskach. Gdy słucha, środek jaśnieje i oddycha,
+   a poświata wychodzi na pierścień: to sygnał stanu, więc zostaje także przy ograniczonym ruchu. Pod okiem podpis mówi, co robi. */
+.czat-duzy-mik { display: grid; justify-items: center; gap: 10px; margin: 0; padding: 0; border: 0; background: none; color: var(--cz-tekst);
   font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.czat-duzy-mik > svg { box-sizing: content-box; width: 32px; height: 32px; padding: 20px; border-radius: 50%; background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); color: var(--cz-na-przycisku);
-  box-shadow: var(--cz-c3d-b);
-  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), background-color 120ms ease; }
-.czat-duzy-mik:active > svg { transform: scale(1.03); transition: transform 80ms ease; }
-.czat-duzy-mik.nagrywa > svg { background-color: var(--cz-czerwony); animation: czat-puls 1.4s ease-out infinite; }
+.czat-oko { position: relative; display: block; width: 84px; height: 84px; border-radius: 50%;
+  background: linear-gradient(135deg, #fdfdfd, #d1d1d6 34%, #8e8e93 64%, #e5e5ea);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 1px 1px 2px rgba(0, 0, 0, .2), 3px 3px 10px rgba(0, 0, 0, .16), 6px 6px 20px rgba(0, 0, 0, .1);
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1); }
+.czat-oko::after { content: ""; position: absolute; inset: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, .9) 0 2px, rgba(255, 255, 255, .25) 4px, rgba(255, 255, 255, 0) 8px),
+    radial-gradient(circle, #ffd88a 0 3%, #ff5428 7%, #e10a0a 15%, #8c0000 28%, #2b0202 43%, #0a0a0a 55%, #050505);
+  box-shadow: inset 0 0 0 2px #111111, inset 2px 2px 4px rgba(255, 255, 255, .12), inset -2px -2px 6px rgba(0, 0, 0, .6); }
+.czat-duzy-mik:active .czat-oko { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-duzy-mik.nagrywa .czat-oko::after { animation: czat-hal 2.2s ease-in-out infinite; }
+@keyframes czat-hal {
+  0%, 100% { filter: brightness(1.05) saturate(1.1); box-shadow: inset 0 0 0 2px #111111, 0 0 10px 2px rgba(255, 40, 20, .35); }
+  50% { filter: brightness(1.45) saturate(1.3); box-shadow: inset 0 0 0 2px #111111, 0 0 26px 9px rgba(255, 40, 20, .6); } }
 .czat-duzy-mik:focus-visible { outline: none; }
-.czat-duzy-mik:focus-visible > svg { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
+.czat-duzy-mik:focus-visible .czat-oko { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
 /* Podpowiedzi (od 26.10.2026, Jacek: pytania „za ciasno, bez koloru i bez oddechu”, „nikt nie wie, że da się je stuknąć”): przyciski
    z głębią w pastelach zakładek, których dotyczą, co 12 px, na całą szerokość. Napis #1d1d1f (w ciemnym biały) ma na nich od 9:1. */
 .czat-podpowiedzi { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: 480px; }

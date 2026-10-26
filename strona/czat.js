@@ -19,6 +19,8 @@
 //                               mikrofon: true, glosNatywny: { start(klucz, ustawienia), stop(zaraz) }, naZmiane(otwarty),
 //                               dol(): ile pikseli od dołu ekranu ma zostać widać pod arkuszem, na przykład nawigacja aplikacji })
 //   Czat.dymek(przycisk): dymek przy ikonce bez podpisu. Wołaj go przed dodaniem własnego „click”.
+//   czat.wstecz(): Wstecz w telefonie; zamyka Historię, a gdy jej nie ma, rozmowę (true, gdy coś zamknął).
+// Historia (od 26.10.2026): „Nowa rozmowa” odkłada bieżącą do Historii, a „Historia” pokazuje wcześniejsze i wraca do każdej z nich.
 'use strict';
 (() => {
   const SERWER = 'https://ntfy.sh', SONIOX = 'wss://stt-rt.soniox.com/transcribe-websocket';
@@ -62,6 +64,8 @@
     mikrofon: '<path d="M12 3.5a3.4 3.4 0 0 0-3.4 3.4v5a3.4 3.4 0 0 0 6.8 0v-5A3.4 3.4 0 0 0 12 3.5zM18 11.9h-1.9a4.1 4.1 0 0 1-8.2 0H6a6 6 0 0 0 5.1 5.9v2.7h1.8v-2.7A6 6 0 0 0 18 11.9z"/>',
     zewnatrz: '<path d="M13.5 4H20v6.5h-2V7.4l-7.3 7.3-1.4-1.4L16.6 6h-3.1zM5 6.5h6v2H6v9.5h9.5v-5h2v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z"/>',
     dalej: '<path d="M9.3 6.3 15 12l-5.7 5.7-1.4-1.4 4.3-4.3-4.3-4.3z"/>',
+    historia: '<path fill-rule="evenodd" d="M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zm0 1.9a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2zM11.05 7.5h1.9v4.45l3.3 1.95-.97 1.64-4.23-2.5z"/>',
+    nowa: '<path d="M11.05 5h1.9v6.05H19v1.9h-6.05V19h-1.9v-6.05H5v-1.9h6.05z"/>',
   };
   const ikona = (n, r = 20) => `<svg width="${r}" height="${r}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${IKONY[n]}</svg>`;
 
@@ -117,7 +121,15 @@
     const korzen = el('section', { class: `czat czat-${tryb}`, 'aria-label': 'Asystent', tabindex: '-1' });
     if (tryb === 'arkusz') { korzen.setAttribute('role', 'dialog'); korzen.setAttribute('aria-modal', 'true'); korzen.hidden = true; }
     const zamknijB = przycisk('zamknij', 'Zamknij', 'czat-zamknij', 18);
-    const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null, zamknijB);
+    // Historia i nowa rozmowa (od 26.10.2026, Jacek: „nie ma możliwości nawigacji i historii, i wyjścia z tego, i … rozpoczęcia od nowa”):
+    // dwa przyciski z napisem, bo samej ikonki nikt nie brał za przycisk. Historia przełącza widok na listę wcześniejszych rozmów,
+    // a Nowa rozmowa odkłada bieżącą do Historii i zaczyna od pustej. Wyjście to krzyżyk, Escape, Wstecz i zakładki pod rozmową.
+    const pigulka = (n, napis, klasa) => { const b = el('button', { type: 'button', class: 'czat-pigulka ' + klasa, html: ikona(n, 18) }); b.append(el('span', { text: napis })); return b; };
+    const historiaB = pigulka('historia', 'Historia', 'czat-historia');
+    historiaB.setAttribute('aria-pressed', 'false');
+    const nowaB = pigulka('nowa', 'Nowa rozmowa', 'czat-nowa');
+    const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null,
+      el('div', { class: 'czat-gora-lewo' }, historiaB, nowaB), zamknijB);
     const lista = el('div', { class: 'czat-lista', role: 'log', 'aria-live': 'polite', 'aria-label': 'Rozmowa z asystentem' });
     const stanL = el('p', { class: 'czat-stan', role: 'status', hidden: true });
     const pole = el('textarea', { class: 'czat-tekst', rows: '1', maxlength: '600', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
@@ -141,6 +153,8 @@
       wyslijB.disabled = pracuje || !pole.value.trim();
       wyslijB.setAttribute('aria-label', pracuje ? 'Komputer jeszcze odpowiada' : 'Wyślij');
       mikB.disabled = pracuje;
+      nowaB.disabled = pracuje || !historia.length;
+      historiaB.disabled = pracuje;
     }
     function rosnij() {
       pole.style.height = 'auto';
@@ -169,7 +183,11 @@
     }
     function napisPokazu(p) {
       if (p.model && p.nazwa) return 'Pokaż model: ' + p.nazwa;
+      if (p.porownaj) return 'Pokaż porównanie';
       if (p.podium) return 'Pokaż Podium';
+      if (p.finanse) return 'Pokaż ratę w Finansach';
+      if (p.szukaj) return 'Szukaj w Ofertach: ' + p.szukaj;
+      if (p.rozdzial && p.nazwa) return 'Otwórz w Poradniku: ' + p.nazwa;
       return 'Pokaż ' + BIERNIK[p.zakladka];
     }
     function wiadomosc(w) {
@@ -213,8 +231,9 @@
         b.addEventListener('click', () => wyslij(t));
         rzad.append(b);
       }
-      // Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”), ten sam co mały przy polu pytania.
-      const duzy = el('button', { type: 'button', class: 'czat-duzy-mik', 'aria-label': 'Powiedz pytanie', html: ikona('mikrofon', 32) + '<span>Powiedz pytanie</span>' });
+      // Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”), ten sam co mały przy polu pytania. Od tego samego
+      // dnia to oko w stylu HAL 9000 (Jacek: „ever so slightly … reminiscent of HAL z Odysei Kosmicznej 2001”), a podpis mówi, co robi.
+      const duzy = el('button', { type: 'button', class: 'czat-duzy-mik', 'aria-label': 'Powiedz pytanie', html: '<span class="czat-oko" aria-hidden="true"></span><span>Powiedz pytanie</span>' });
       duzy.hidden = !(mozeNagrywac() && pamiec.czytaj('glos', null) !== false);
       duzy.addEventListener('click', () => (glos.stan === 'nic' ? glosStart() : glosStop(true)));
       return el('div', { class: 'czat-pusto' }, el('p', { text: ZDANIA.pusto }), duzy, rzad);
@@ -222,15 +241,92 @@
     function dodaj(w) {
       historia.push(w);
       zapiszHistorie();
+      if (widokHistorii) { rysuj(); return lista.lastElementChild; }
       usunPusto();
       const e = wiadomosc(w);
       lista.insertBefore(e, mysli && mysli.parentNode === lista ? mysli : null);
       return e;
     }
+    // ---------------------------------------------------------------- historia rozmów (od 26.10.2026)
+    // Wcześniejsze rozmowy leżą w pamięci urządzenia (najwyżej 20, każda do 40 wiadomości) razem z identyfikatorem rozmowy dla komputera,
+    // więc po powrocie da się dopytać dalej. Nic nie znika: nowa rozmowa odkłada bieżącą, a powrót do starej odkłada bieżącą też.
+    const ARCHIWUM = 20;
+    let widokHistorii = false;
     function rysuj() {
+      widokHistorii = false;
+      historiaB.setAttribute('aria-pressed', 'false');
+      lista.setAttribute('aria-label', 'Rozmowa z asystentem');
       lista.replaceChildren(...(historia.length ? historia.map(wiadomosc) : [pusto()]));
       if (mysli) lista.append(mysli);
+      forma.hidden = false;
+      przyciski();
       naDol();
+    }
+    const archiwum = () => { const a = pamiec.czytaj('archiwum', []); return Array.isArray(a) ? a.filter((r) => r && Array.isArray(r.wpisy) && r.wpisy.length) : []; };
+    function odloz() {
+      if (!historia.length) return;
+      const a = archiwum();
+      a.unshift({ id: pamiec.czytaj('rozmowa', null) || losowe(), czas: pamiec.czytaj('ostatnio', Date.now()), wpisy: historia });
+      pamiec.zapisz('archiwum', a.slice(0, ARCHIWUM));
+    }
+    function odNowa() {
+      odloz();
+      historia = [];
+      zapiszHistorie();
+      pamiec.zapisz('rozmowa', losowe());
+      pamiec.zapisz('ostatnio', Date.now());
+      rysuj();
+    }
+    function nowaRozmowa() {
+      if (pracuje || !historia.length) return;
+      if (glos.stan !== 'nic') glosStop(false);
+      odNowa();
+      stan('Poprzednia rozmowa jest w Historii.', 5000);
+    }
+    // Po 6 godzinach ciszy rozmowa zaczyna się od nowa, jak dla komputera (rozmowa() niżej), a stara czeka w Historii.
+    function poCzasie() {
+      if (!historia.length || pracuje || czeka.size || (pamiec.czytaj('czeka', []) || []).length) return;
+      if (Date.now() - pamiec.czytaj('ostatnio', 0) > NOWA_ROZMOWA_MS) odNowa();
+    }
+    function wrocDo(i) {
+      if (pracuje) return;
+      const a = archiwum(), r = a[i];
+      if (!r) return;
+      a.splice(i, 1);
+      pamiec.zapisz('archiwum', a);
+      odloz();
+      historia = r.wpisy.slice(-NAJWIECEJ);
+      zapiszHistorie();
+      pamiec.zapisz('rozmowa', r.id);
+      pamiec.zapisz('ostatnio', Date.now());
+      rysuj();
+    }
+    function kiedy(t) {
+      const d = new Date(t), dzis = new Date();
+      const godz = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+      if (d.toDateString() === dzis.toDateString()) return 'Dziś, ' + godz;
+      if (d.toDateString() === new Date(dzis - 864e5).toDateString()) return 'Wczoraj, ' + godz;
+      return d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + godz;
+    }
+    const pytan = (n) => `${n} ${n === 1 ? 'pytanie' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'pytania' : 'pytań'}`;
+    function pokazHistorie() {
+      if (pracuje) return;
+      if (glos.stan !== 'nic') glosStop(false);
+      widokHistorii = true;
+      historiaB.setAttribute('aria-pressed', 'true');
+      lista.setAttribute('aria-label', 'Wcześniejsze rozmowy');
+      const a = archiwum();
+      lista.replaceChildren(a.length ? el('div', { class: 'czat-rozmowy' }, ...a.map((r, i) => {
+        const pierwsze = r.wpisy.find((w) => w.kto === 'ja');
+        const b = el('button', { type: 'button', class: 'czat-rozmowa' },
+          el('span', { class: 'czat-rozmowa-tytul', text: pierwsze ? pierwsze.tekst : 'Rozmowa' }),
+          el('span', { class: 'czat-rozmowa-kiedy', text: `${kiedy(r.czas)} · ${pytan(r.wpisy.filter((w) => w.kto === 'ja').length)}` }));
+        b.addEventListener('click', () => wrocDo(i));
+        return b;
+      })) : el('p', { class: 'czat-pusto', text: 'Wcześniejszych rozmów jeszcze nie ma.' }));
+      forma.hidden = true;
+      stan('');
+      lista.scrollTop = 0;
     }
 
     // ---------------------------------------------------------------- kanał ntfy.sh
@@ -375,6 +471,7 @@
     function otworz() {
       if (tryb === 'strona') return;
       doRozmowy = 0;
+      poCzasie();
       if (!otwarty()) wroc = document.activeElement;
       if (tryb === 'panel') o.miejsce.hidden = false;
       else {
@@ -406,13 +503,15 @@
       if (o.naZmiane) o.naZmiane(false);
     }
     zamknijB.addEventListener('click', zamknij);
+    historiaB.addEventListener('click', () => (widokHistorii ? rysuj() : pokazHistorie()));
+    nowaB.addEventListener('click', nowaRozmowa);
     if (zaslona) zaslona.addEventListener('click', zamknij);
     forma.addEventListener('submit', (e) => { e.preventDefault(); wyslij(pole.value); });
     wyslijB.addEventListener('click', () => wyslij(pole.value));
     pole.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); wyslij(pole.value); } });
     pole.addEventListener('input', () => { rosnij(); przyciski(); });
     korzen.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); if (glos.stan !== 'nic') glosStop(false); else zamknij(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); if (glos.stan !== 'nic') glosStop(false); else if (widokHistorii) rysuj(); else zamknij(); return; }
       if (e.key !== 'Tab' || tryb !== 'arkusz') return;
       const f = [...korzen.querySelectorAll('button, a[href], textarea')].filter((x) => !x.disabled && x.offsetParent !== null);
       if (!f.length) return;
@@ -583,6 +682,7 @@
 
     // ---------------------------------------------------------------- start
     rysuj();
+    poCzasie();
     przyciski();
     pokazMik();
     for (const c of pamiec.czytaj('czeka', []) || []) {
@@ -602,7 +702,8 @@
     }
     zapiszCzekajace();
     const wrocDoRozmowy = () => { if (!doRozmowy || Date.now() - doRozmowy > 600000) return false; doRozmowy = 0; otworz(); return true; };
-    const api = { otworz, zamknij, przelacz: () => (otwarty() ? zamknij() : otworz()), otwarty, wyslij, zGlosu, korzen, pracuje: () => pracuje, wrocDoRozmowy };
+    const wstecz = () => { if (widokHistorii) { rysuj(); return true; } if (!otwarty()) return false; zamknij(); return true; };
+    const api = { otworz, zamknij, przelacz: () => (otwarty() ? zamknij() : otworz()), otwarty, wyslij, zGlosu, korzen, pracuje: () => pracuje, wrocDoRozmowy, wstecz };
     aktywny = api;
     return api;
   }

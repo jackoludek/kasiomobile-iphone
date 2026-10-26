@@ -1056,6 +1056,20 @@
   // po dawnych nazwach: katalog (Ogłoszenia, Teraz), historia, modele (Katalag, Podium), kredyt (Finanse) i poradnik.
   // Mikrofon: Android i strona w sieci nagrywają same (Safari i Chrome pod https). Spod auta:// strona mikrofonu nie dostaje, więc
   // w aplikacji na iPhone'a nagrywa Aplikacja.swift (od 26.10.2026, klasa Glos), a strona daje jej klucz i ustawienia Soniox.
+  // Pole w stronie w ramce ustawione tak, jakby wpisał je człowiek: wartość i zdarzenie input, na które strona już słucha (szukanie
+  // w Ofertach, cena i okres w Finansach). Gdy ramka jeszcze się wczytuje, próbujemy raz po jej wczytaniu.
+  function wpisz(ramka, sel, wartosc) {
+    const zrob = () => {
+      try {
+        const e = ramka.contentDocument && ramka.contentDocument.querySelector(sel);
+        if (!e) return false;
+        e.value = String(wartosc);
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      } catch { return false; }
+    };
+    if (!zrob()) ramka.addEventListener('load', () => setTimeout(zrob, 300), { once: true });
+  }
   const mostGlosu = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.glos;
   const czat = window.Czat && KANAL ? Czat.uruchom({
     kanal: KANAL, tryb: 'arkusz', mikrofon: SKAD !== 'iPhone', skad: SKAD,
@@ -1066,15 +1080,30 @@
     glosNatywny: mostGlosu ? { start: (klucz, konfiguracja) => mostGlosu.postMessage({ co: 'start', klucz, konfiguracja }),
       stop: (zaraz) => mostGlosu.postMessage({ co: 'stop', zaraz: Boolean(zaraz) }) } : null,
     zakladka: () => { const k = klucz(widok); return k === 'atlas' ? 'modele' : k; },
+    // Ręce asystenta (od 26.10.2026 także porównanie, rata w Finansach, szukanie w Ofertach i rozdział poradnika; Jacek: „On musi też być
+    // w stanie obsługiwać tę aplikację. Mieć ręce i nogi”).
     async pokaz(p) {
       const z = p.zakladka === 'nowe' ? 'katalog' : p.zakladka;
-      if (z === 'katalog' || z === 'historia') { await ustawPigulke('katalog', z === 'historia' ? 'historia' : 'teraz', true, false); await pokazWidok(nrZakladki('katalog'), true); }
-      else if (z === 'modele') {
+      if (z === 'katalog' || z === 'historia') {
+        await ustawPigulke('katalog', z === 'historia' ? 'historia' : 'teraz', true, false);
+        await pokazWidok(nrZakladki('katalog'), true);
+        if (p.szukaj && z === 'katalog') wpisz(STRONY.katalog.el, 'input[type="search"]', p.szukaj);
+      } else if (z === 'modele') {
         if (PIGULKI.modele) await ustawPigulke('modele', 'podium', true, false);
         await pokazWidok(nrZakladki('modele'), true);
-        if (p.model || p.podium) STRONY.modele.el.contentWindow.postMessage({ auta: 'pokaz', model: p.model || null, podium: p.podium || null }, '*');
-      } else if (z === 'kredyt') await pokazWidok(nrZakladki('kredyt'), true);
-      else if (z === 'poradnik') await pokazWidok(nrZakladki('poradnik'), true);
+        if (p.model || p.podium || p.porownaj) STRONY.modele.el.contentWindow.postMessage({ auta: 'pokaz', model: p.model || null, podium: p.podium || null, porownaj: p.porownaj || null }, '*');
+      } else if (z === 'kredyt') {
+        if (p.finanse && jestPigulka('kredyt', p.finanse.czesc)) await ustawPigulke('kredyt', p.finanse.czesc, true, false);
+        await pokazWidok(nrZakladki('kredyt'), true);
+        if (p.finanse) { wpisz(STRONY.kredyt.el, '#cena', p.finanse.cena); wpisz(STRONY.kredyt.el, '#okres', p.finanse.okres); }
+      } else if (z === 'poradnik') {
+        if (p.rozdzial) await ustawPigulke('poradnik', 'calosc', true, false);
+        await pokazWidok(nrZakladki('poradnik'), true);
+        if (p.rozdzial) {
+          ustawPoradnik(false);
+          setTimeout(() => { try { const c = STRONY.poradnik.el.contentDocument.getElementById(p.rozdzial); if (c) c.scrollIntoView({ block: 'start' }); } catch { /* strona się wczytuje */ } }, 150);
+        }
+      }
     },
   }) : null;
   const przyciskCzatu = $('#czat-otworz');
@@ -1088,7 +1117,7 @@
   // odpowiada dopiero po chwili, więc gdy stoi na pierwszej pigułce rzędu, Wstecz idzie na pierwszą zakładkę.
   function wstecz() {
     if (menuOtomoto) { zamknijMenuOtomoto(true); return true; }
-    if (czat && czat.otwarty()) { czat.zamknij(); return true; }
+    if (czat && czat.otwarty()) return czat.wstecz();
     const k = klucz(widok);
     if (k === 'atlas') {
       if (atlasGotowy) { atlasWstecz = Date.now(); ramkaAtlasu.contentWindow.postMessage({ atlas: 'wstecz' }, '*'); }
