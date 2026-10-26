@@ -1,0 +1,201 @@
+/* czat.css: wygląd asystenta Kasiomobile (czat.js), ten sam na iPhonie, Androidzie, komputerze i w przeglądarce (od 19.10.2026).
+   Kolory to role w jednym miejscu, motyw za systemem, ciemny to czerń. Kontrast par liczy sprawdz-kontrast-czatu.js.
+   Cel dotyku ma 48 px: widoczny kształt jest mniejszy, a resztę celu daje przezroczysta obwódka albo pole wokół kółka
+   (reguła przyciski-zawsze-jak-przyciski). Krój Inter bierze ze strony, w której stoi. */
+.czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+  --cz-tlo: #ffffff; --cz-pod: #f2f2f7; --cz-tekst: #1d1d1f; --cz-tekst2: #6e6e73; --cz-ramka: #d2d2d7; --cz-wlosek: rgba(0, 0, 0, .12);
+  --cz-akcent: #0071e3; --cz-akcent-tekst: #0066cc; --cz-ja: #deecfb; --cz-przycisk: #0071e3; --cz-na-przycisku: #ffffff;
+  --cz-szary: #e8e8ed; --cz-czerwony: #d70015; --cz-cien: rgba(0, 0, 0, .12); --cz-blysk: rgba(255, 255, 255, .6);
+  --cz-dymek-tlo: #ffffff; --cz-dymek-tekst: #1d1d1f; --cz-otworz: #ffffff;
+  /* Przyciski jak przyciski, wariant 4 z 45° światłem z lewego górnego rogu, te same liczby co --g3d i --c3d w styl.css (od 26.10.2026).
+     -b to wypełniony akcentem (wysyłanie, duży mikrofon, otwarty panel). Szkło kółka asystenta to 14% akcentu na bieli. */
+  --cz-lico: linear-gradient(135deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, 0) 46%, rgba(0, 0, 0, .045));
+  --cz-lico-b: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, .1));
+  --cz-c3d: inset 1px 1px 0 rgba(255, 255, 255, .95), inset -1px -1px 0 rgba(0, 0, 0, .07), 0 0 0 .5px rgba(0, 0, 0, .16), 1px 1px 2px rgba(0, 0, 0, .12), 3px 3px 8px rgba(0, 0, 0, .1), 6px 6px 18px rgba(0, 0, 0, .06);
+  --cz-c3d-b: inset 1px 1px 0 rgba(255, 255, 255, .38), inset -1px -1px 0 rgba(0, 0, 0, .2), 1px 1px 2px rgba(0, 0, 0, .16), 3px 3px 10px rgba(0, 113, 227, .3), 6px 6px 18px rgba(0, 0, 0, .06);
+  --cz-otworz-szklo: rgba(220, 236, 252, .86);
+}
+@media (prefers-color-scheme: dark) {
+  .czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+    --cz-tlo: #000000; --cz-pod: #1c1c1e; --cz-tekst: #ffffff; --cz-tekst2: #c0bfbc; --cz-ramka: #48484a; --cz-wlosek: rgba(255, 255, 255, .16);
+    --cz-akcent: #409cff; --cz-akcent-tekst: #78bbff; --cz-ja: #0f253d; --cz-przycisk: #0a84ff; --cz-na-przycisku: #ffffff;
+    --cz-szary: #2c2c2e; --cz-czerwony: #ff453a; --cz-cien: rgba(0, 0, 0, 0); --cz-blysk: rgba(255, 255, 255, 0);
+    --cz-dymek-tlo: #2c2c2e; --cz-dymek-tekst: #ffffff; --cz-otworz: #2c2c2e;
+    --cz-lico: linear-gradient(135deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, 0) 50%);
+    --cz-lico-b: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, .12));
+    --cz-c3d: inset 1px 1px 0 rgba(255, 255, 255, .24), inset -1px -1px 0 rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .2);
+    --cz-c3d-b: inset 1px 1px 0 rgba(255, 255, 255, .42), inset -1px -1px 0 rgba(0, 0, 0, .28), 3px 3px 14px rgba(10, 132, 255, .3);
+    --cz-otworz-szklo: rgba(15, 37, 61, .86);
+  }
+}
+.czat { display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; background: var(--cz-tlo); color: var(--cz-tekst);
+  font: 400 17px/1.45 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; -webkit-text-size-adjust: 100%; outline: none; }
+.czat *, .czat *::before, .czat *::after { box-sizing: border-box; }
+.czat[hidden], .czat-zaslona[hidden], .czat [hidden] { display: none !important; }
+
+/* Telefon: arkusz od dołu, jak w iOS. Stoi w widocznej części ekranu (--czat-y, --czat-h z visualViewport), więc klawiatura go nie zasłania. */
+/* Od 26.10.2026 bez klawiatury kończy się nad nawigacją aplikacji (--czat-dol z czat.js), która zostaje widać i działa (styl.css,
+   body.czat-otwarty). Pole pytania ma wtedy pod sobą zwykłe 12 px zamiast odstępu od krawędzi ekranu. */
+.czat-arkusz { position: fixed; z-index: 42; left: 0; right: 0; top: calc(var(--czat-y, 0px) + var(--km-gora, env(safe-area-inset-top, 0px)) + 10px);
+  height: calc(var(--czat-h, 100vh) - var(--km-gora, env(safe-area-inset-top, 0px)) - 10px - var(--czat-dol, 0px)); border-radius: 16px 16px 0 0;
+  box-shadow: 0 0 0 .5px var(--cz-wlosek), 0 -6px 30px var(--cz-cien); transform: translateY(105%); transition: transform 320ms cubic-bezier(.2, 0, 0, 1); }
+.czat-arkusz.widac { transform: none; }
+.czat-arkusz.nad-nawigacja .czat-pole { padding-bottom: 12px; }
+.czat-zaslona { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .32); opacity: 0; transition: opacity 320ms cubic-bezier(.2, 0, 0, 1); }
+.czat-zaslona.widac { opacity: 1; }
+/* Szerokie okno (przeglądarka na komputerze, iPhone w poziomie): panel z prawej, na całą wysokość. */
+@media (min-width: 760px) {
+  .czat-arkusz { left: auto; width: 420px; top: var(--czat-y, 0px); height: var(--czat-h, 100vh); border-radius: 0; font-size: 16px;
+    box-shadow: -.5px 0 0 var(--cz-ramka), -8px 0 30px var(--cz-cien); transform: translateX(105%); }
+  .czat-arkusz .czat-uchwyt { display: none; }
+  .czat-zaslona { background: rgba(0, 0, 0, .12); }
+}
+/* Komputer: panel obok zakładek. Android: cała przeglądarka w aplikacji to czat. */
+.czat-panel { height: 100%; font-size: 16px; box-shadow: inset .5px 0 0 var(--cz-ramka); }
+.czat-strona { position: fixed; inset: 0; padding: var(--km-gora, env(safe-area-inset-top, 0px)) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+@media (prefers-reduced-motion: reduce) { .czat-arkusz, .czat-zaslona { transition: none; } }
+
+.czat-gora { flex: none; position: relative; display: flex; justify-content: flex-end; align-items: center; min-height: 52px; padding: 4px 8px 0; }
+.czat-arkusz .czat-gora { touch-action: none; }
+.czat-uchwyt { position: absolute; top: 6px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--cz-ramka); }
+
+/* Okrągłe przyciski: kółko 40 px w polu 48 px, z włoskiem, jasną krawędzią u góry i miękkim cieniem. */
+.czat-ikonka { position: relative; flex: none; display: inline-grid; place-items: center; width: 48px; height: 48px; margin: 0; padding: 0; border: 0;
+  border-radius: 50%; background: none; color: var(--cz-tekst); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.czat-ikonka::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background-color: var(--cz-szary); background-image: var(--cz-lico);
+  box-shadow: var(--cz-c3d);
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), background-color 120ms ease, box-shadow 120ms ease; }
+.czat-ikonka > svg { position: relative; transition: transform 120ms ease; }
+/* Pod kursorem kółko dostaje mocniejszy cień, a w ciemnym motywie, gdzie cienia nie widać, wyraźniejszy włosek. Nic się nie przesuwa
+   (Jacek, 20.10.2026: „literki się trochę przesuwają … nie jest celowe ani sensowne”). Do 20.10.2026 kółko i znak unosiły się o 1 px. */
+@media (hover: hover) { .czat-ikonka:not(:disabled):not(:focus-visible):hover::before { box-shadow: 0 0 0 1px var(--cz-akcent), var(--cz-c3d); } }
+/* Wciśnięte kółko rośnie o 3%, jak szkło w iOS 26 (do 26.10.2026 malało o 6%). */
+.czat-ikonka:not(:disabled):active::before { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-ikonka:focus-visible { outline: none; }
+.czat-ikonka:focus-visible::before { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
+/* Przycisk asystenta w nagłówku aplikacji (od 26.10.2026, Jacek: „ikonkę u góry, która znowu nie wiadomo, że jest ikonką”): kółko
+   ze szkła w lekkim błękicie akcentu, z blaskiem z lewego górnego rogu i cieniem rzuconym w prawo w dół, a w nim iskry asystenta
+   (Jacek o dymku w kółku: „wygląda jak chmurka w chmurce”). Wciśnięte rośnie o 3%. Na komputerze otwarty panel wypełnia kółko
+   akcentem z białym znakiem (aria-expanded). Znak #0066cc ma na szkle 4,7:1, w ciemnym #78bbff na granacie 8,1:1. */
+.czat-otworz::before { background-color: var(--cz-otworz-szklo); -webkit-backdrop-filter: blur(14px) saturate(1.8); backdrop-filter: blur(14px) saturate(1.8); }
+.czat-otworz { color: var(--cz-akcent-tekst); }
+.czat-otworz[aria-expanded="true"] { color: var(--cz-na-przycisku); }
+.czat-otworz[aria-expanded="true"]::before { background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); box-shadow: var(--cz-c3d-b); }
+.czat-zamknij { color: var(--cz-tekst2); }
+.czat-zamknij::before { inset: 8px; }
+.czat-wyslij { color: var(--cz-na-przycisku); }
+.czat-wyslij::before { background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); box-shadow: var(--cz-c3d-b); }
+.czat-wyslij:disabled { color: var(--cz-tekst2); cursor: default; }
+.czat-wyslij:disabled::before { background: var(--cz-szary); box-shadow: 0 0 0 .5px var(--cz-wlosek); }
+.czat-mik.nagrywa { color: #ffffff; }
+.czat-mik.nagrywa::before { background-color: var(--cz-czerwony); background-image: var(--cz-lico-b); }
+/* Puls wokół nagrywającego mikrofonu to sygnał stanu, więc zostaje także przy ograniczonym ruchu. */
+.czat-mik.nagrywa::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; animation: czat-puls 1.4s ease-out infinite; }
+@keyframes czat-puls { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cz-czerwony) 55%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
+.czat-mik:disabled { opacity: .5; cursor: default; }
+
+/* Rozmowa: moje pytania z prawej w lekkim błękicie, odpowiedzi z lewej na szarym. Jedna oś przewijania. */
+.czat-lista { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+/* Pasek listy widać dopiero pod kursorem, jak na stronach w zakładkach (od 21.10.2026). */
+.czat-lista:hover { scrollbar-color: var(--cz-ramka) transparent; }
+.czat-w { display: flex; flex-direction: column; gap: 8px; max-width: 88%; }
+.czat-w.ja { align-self: flex-end; align-items: flex-end; }
+.czat-w.ai { align-self: flex-start; align-items: flex-start; }
+.czat-babelek { padding: 10px 14px; border-radius: 18px; background: var(--cz-pod); overflow-wrap: anywhere; }
+.czat-w.ja .czat-babelek { background: var(--cz-ja); border-bottom-right-radius: 6px; }
+.czat-w.ai .czat-babelek { border-bottom-left-radius: 6px; }
+.czat-babelek p, .czat-babelek ul { margin: 0; }
+.czat-babelek > * + * { margin-top: 8px; }
+.czat-babelek ul { padding-left: 1.15em; }
+.czat-babelek li + li { margin-top: 4px; }
+.czat-babelek.blad { background: transparent; box-shadow: inset 0 0 0 1px var(--cz-czerwony); }
+/* Trzy kropki, póki komputer myśli: sygnał pracy, zostaje także przy ograniczonym ruchu. */
+.czat-mysli .czat-babelek { display: inline-flex; gap: 5px; padding: 16px; }
+.czat-mysli i { width: 7px; height: 7px; border-radius: 50%; background: var(--cz-tekst2); animation: czat-kropka 1.2s ease-in-out infinite; }
+.czat-mysli i:nth-child(2) { animation-delay: .15s; }
+.czat-mysli i:nth-child(3) { animation-delay: .3s; }
+@keyframes czat-kropka { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+
+/* Pigułki pod odpowiedzią („Pokaż …”, odnośniki) i podpowiedzi: widać 40 px, cel 48 px dzięki przezroczystej obwódce. */
+.czat-akcja, .czat-podpowiedz { position: relative; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 40px; margin: 0; padding: 10px 18px;
+  border: 0; border-radius: 20px; font: inherit; font-size: 15px; line-height: 1.3; text-align: left; text-decoration: none;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), background-color 120ms ease, box-shadow 120ms ease; }
+/* Cel dotyku 48 px: przezroczyste pole 4 px nad i pod widoczną pigułką (od 26.10.2026; wcześniej przezroczysta obwódka, przy której
+   cień rzucony w prawo w dół odstawał od pigułki). */
+.czat-akcja::before, .czat-podpowiedz::before { content: ""; position: absolute; inset: -4px 0; }
+.czat-akcja { background-color: color-mix(in srgb, var(--cz-akcent) 12%, var(--cz-tlo)); background-image: var(--cz-lico); color: var(--cz-akcent-tekst); font-weight: 600;
+  box-shadow: var(--cz-c3d); }
+.czat-akcja > span { min-width: 0; }
+.czat-akcja > svg { flex: none; }
+.czat-podpowiedz { background-color: var(--cz-pod); background-image: var(--cz-lico); color: var(--cz-tekst); font-weight: 500; text-align: center;
+  box-shadow: var(--cz-c3d); }
+/* Pod kursorem wyraźniejsza obwódka, napis stoi w miejscu. */
+@media (hover: hover) {
+  .czat-akcja:not(:disabled):hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cz-akcent) 70%, transparent), var(--cz-c3d); }
+  .czat-podpowiedz:hover, .czat .czat-podpowiedz:hover { box-shadow: inset 0 0 0 1px var(--cz-tekst2), var(--cz-c3d); }
+}
+.czat-akcja:active, .czat-podpowiedz:active { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-akcja:focus-visible, .czat-podpowiedz:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: -2px; }
+.czat-akcja:disabled { opacity: .5; cursor: default; }
+@media (prefers-color-scheme: dark) {
+  .czat-akcja { background-color: color-mix(in srgb, var(--cz-akcent) 22%, var(--cz-tlo)); }
+}
+.czat-pusto { margin: auto 0; display: grid; justify-items: center; gap: 24px; padding: 16px 0 24px; text-align: center; color: var(--cz-tekst2); }
+.czat-pusto > p { max-width: 22em; margin: 0; }
+/* Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”): kółko 72 px w akcencie z głębią, pod nim podpis.
+   Nagrywa: czerwone z pulsem, jak mały mikrofon przy polu. Biały znak na #0071e3 ma 4,7:1. */
+.czat-duzy-mik { display: grid; justify-items: center; gap: 8px; margin: 0; padding: 0; border: 0; background: none; color: var(--cz-tekst);
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.czat-duzy-mik > svg { box-sizing: content-box; width: 32px; height: 32px; padding: 20px; border-radius: 50%; background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); color: var(--cz-na-przycisku);
+  box-shadow: var(--cz-c3d-b);
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), background-color 120ms ease; }
+.czat-duzy-mik:active > svg { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-duzy-mik.nagrywa > svg { background-color: var(--cz-czerwony); animation: czat-puls 1.4s ease-out infinite; }
+.czat-duzy-mik:focus-visible { outline: none; }
+.czat-duzy-mik:focus-visible > svg { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
+/* Podpowiedzi (od 26.10.2026, Jacek: pytania „za ciasno, bez koloru i bez oddechu”, „nikt nie wie, że da się je stuknąć”): przyciski
+   z głębią w pastelach zakładek, których dotyczą, co 12 px, na całą szerokość. Napis #1d1d1f (w ciemnym biały) ma na nich od 9:1. */
+.czat-podpowiedzi { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: 480px; }
+.czat .czat-podpowiedz { justify-content: center; min-height: 52px; margin: 0; padding: 12px 20px; border: 0; border-radius: 26px; font-size: 16px; font-weight: 600;
+  color: #1d1d1f; background-color: var(--cz-pastel, var(--cz-pod)); background-image: var(--cz-lico);
+  box-shadow: var(--cz-c3d); }
+.czat-podpowiedz[data-z="katalog"] { --cz-pastel: #ffeed6; }
+.czat-podpowiedz[data-z="modele"] { --cz-pastel: #d6eaff; }
+.czat-podpowiedz[data-z="kredyt"] { --cz-pastel: #dff6e4; }
+.czat-podpowiedz[data-z="poradnik"] { --cz-pastel: #f2e3fa; }
+
+@media (prefers-color-scheme: dark) {
+  .czat .czat-podpowiedz { color: #ffffff; }
+  .czat-podpowiedz[data-z="katalog"] { --cz-pastel: #5c4118; }
+  .czat-podpowiedz[data-z="modele"] { --cz-pastel: #17395d; }
+  .czat-podpowiedz[data-z="kredyt"] { --cz-pastel: #224f2e; }
+  .czat-podpowiedz[data-z="poradnik"] { --cz-pastel: #4a2d59; }
+}
+
+/* Pole pytania na dole: tekst, mikrofon (gdy jest) i wysyłanie. Od dolnej krawędzi stoi jak pasek zakładek, czyli tak daleko
+   jak logo od górnej (od 24.10.2026); przy klawiaturze i w panelu na komputerze 8 px. */
+.czat-stan { flex: none; margin: 0; padding: 4px 16px; color: var(--cz-tekst2); font-size: 13px; text-align: center; }
+.czat-pole { flex: none; display: flex; align-items: flex-end; gap: 4px; padding: 8px 8px max(calc(var(--km-gora, 0px) / 2 + 12px), calc(8px + env(safe-area-inset-bottom))) 16px;
+  background: var(--cz-tlo); box-shadow: inset 0 .5px 0 var(--cz-ramka); }
+.czat.klawiatura .czat-pole, .czat-panel .czat-pole { padding-bottom: 8px; }
+.czat-tekst { flex: 1; min-width: 0; min-height: 48px; max-height: 132px; margin: 0; padding: 12px 16px; border: .5px solid var(--cz-ramka); border-radius: 24px;
+  background: var(--cz-pod); color: var(--cz-tekst); font: inherit; line-height: 1.3; resize: none; overflow-y: auto; }
+/* Pasek przewijania w polu (od 21.10.2026, Jacek: „It cuts in the windows, usually in the edges”): zaokrąglony róg pola ucinał
+   gruby pasek ze strzałkami o 9,5 px. Teraz pasek jest cienki, widać go dopiero pod kursorem i zaczyna się 24 px od góry i od dołu,
+   tyle, ile ma promień rogu, więc stoi w prostej części brzegu. Margines toru działa tylko w pasku ::-webkit-scrollbar, a Chromium
+   wyłącza go, gdy element ma scrollbar-width albo scrollbar-color, dlatego oba stoją tu na auto (scrollbar-color się dziedziczy).
+   Kolor pod kursorem idzie przez zmienną na samym polu: po samym :hover na pseudoelemencie Chromium paska nie odświeża (sprawdzone). */
+.czat-tekst { --cz-kciuk: transparent; scrollbar-width: auto; scrollbar-color: auto; }
+.czat-tekst:hover { --cz-kciuk: var(--cz-ramka); }
+.czat-tekst::-webkit-scrollbar { width: 10px; }
+.czat-tekst::-webkit-scrollbar-track { background: transparent; margin-top: 24px; margin-bottom: 24px; }
+.czat-tekst::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 5px; background: var(--cz-kciuk) padding-box; }
+.czat-tekst::placeholder { color: var(--cz-tekst2); opacity: 1; }
+.czat-tekst:focus { outline: none; border-color: var(--cz-akcent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cz-akcent) 22%, transparent); }
+
+/* Dymek przy ikonce bez podpisu: karta w stylu Apple, na środku pod ikonką. */
+.czat-dymek { position: fixed; z-index: 1000; max-width: min(280px, calc(100vw - 16px)); padding: 6px 12px; border-radius: 10px;
+  background: var(--cz-dymek-tlo); color: var(--cz-dymek-tekst); font: 500 13px/1.35 "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 0 0 .5px var(--cz-wlosek), 0 4px 14px rgba(0, 0, 0, .16); pointer-events: none; }

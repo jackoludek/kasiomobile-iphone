@@ -1,0 +1,459 @@
+/* Kasiomobile na iPhone'a i w przeglądarce (do 18.10.2026 „Auta”). Ten sam układ co aplikacja na Androidzie.
+   Od 19.10.2026 nagłówek to jeden rząd: logo Kasi, napis „Kasiomobile®”, asystent i Odśwież jako białe kółka. Cztery zakładki
+   z kolorowymi ikonami stoją na dole, jak pasek kart w iOS (Jacek: „brakuje nam … kolorków na tych menu … oczywiste i eleganckie,
+   typu Apple Store”). Na szerokim ekranie zakładki stoją pod nagłówkiem, a od 1100 px w nagłówku, na środku.
+   Napis (nr 20 „Dwa koła”, krzywe z zrob-napis-w-aplikacji.js) ma 26 px, mniej na wąskim telefonie. Tekst 17, 15 i 13 px,
+   odstępy z wielokrotności 4 px, cele dotyku co najmniej 48 px. Kolory to role w jednym miejscu, motyw idzie za systemem,
+   ciemny to czerń. Kontrast par liczy test.js na kolorach, które naprawdę widać. */
+:root {
+  color-scheme: light dark;
+  --tlo: #ffffff;
+  /* Tło ramki z zakładką ma kolor samych stron (biel, w ciemnym czerń), więc przy prawej krawędzi nie stoi szary pasek. */
+  --strona: #ffffff;
+  --tekst: #1d1d1f;
+  /* Drugi plan #636366 (od 26.10.2026): 5,99:1 na bieli, 5,5:1 na #f5f5f7. */
+  --tekst2: #636366;
+  --akcent: #0071e3;
+  /* Napis w akcencie: #0066cc ma 5,6:1 na bieli. */
+  --akcent-tekst: #0066cc;
+  /* Białe kółka i pigułki: włosek, jasna krawędź u góry i miękki cień w dwóch warstwach (wzorzec THIS IS THE WAY, „Głębia”). */
+  --przycisk: #ffffff;
+  --wlos: rgba(0, 0, 0, .12);
+  --blysk: rgba(255, 255, 255, .7);
+  --cien: rgba(0, 0, 0, .12);
+  --cien-mocny: rgba(0, 0, 0, .18);
+  /* Napis obok logo (40 px) i asystenta (48 px), odstępów i marginesów siatki: szerokość ekranu minus 110 px i dwa marginesy,
+     a napis ma 5,67 swojej wielkości szerokości. */
+  --napis: clamp(14px, calc((100vw - 2 * var(--km-bok) - 110px) / 5.67), 26px);
+  --zwykly: 17px;
+  --maly: 15px;
+  --bok: 16px;
+  --lewo: calc(env(safe-area-inset-left) + var(--bok));
+  --prawo: calc(env(safe-area-inset-right) + var(--bok));
+  /* Siatka aplikacji (od 24.10.2026, Jacek: „not aligned to kolumnes below them”, „EVERY FUCKIN WHERE”): ta sama co w Ogłoszeniach,
+     czyli w katalogu Skanera: margines clamp(…, 3vw, 28px), treść najwyżej 1624 px na środku, od 1100 px kolumna filtrów 312 px
+     i 24 px przerwy (--km-kolumna; Skaner ma 26 px, a odstępy idą ze skali 4 i 8 px). Strony w zakładkach dostają ją przy wczytaniu (app.js, „siatka”), więc logo, zakładki i kółka
+     stoją nad krawędziami treści na każdej zakładce i przy każdej szerokości. --km-pasek to pasek przewijania w ramkach (mierzy go
+     app.js; na telefonie i Macu 0, bo pływa nad treścią). --km-x0 i --km-x1 to odległość treści od lewej i prawej krawędzi okna. */
+  --km-bok: clamp(16px, 3vw, 28px);
+  --km-pasek: 0px;
+  --km-tresc: 1624px;
+  --km-kolumna: 336px;
+  --km-lewo: calc(env(safe-area-inset-left) + var(--km-bok));
+  --km-prawo: calc(env(safe-area-inset-right) + var(--km-bok));
+  --km-margines: max(0px, calc((100vw - var(--km-pasek) - var(--km-tresc) - var(--km-lewo) - var(--km-prawo)) / 2));
+  --km-x0: calc(var(--km-margines) + var(--km-lewo));
+  --km-x1: calc(var(--km-margines) + var(--km-prawo) + var(--km-pasek));
+  /* Wcięcie u góry ekranu (wycięcie aparatu albo czujników): na iPhonie i w przeglądarce z env(), a na Androidzie, gdzie strona
+     sięga pod pas przy aparacie, wpisuje je MainActivity.java (podajGore). Nagłówek stoi na środku tego pasa razem ze swoim rzędem. */
+  --km-gora: env(safe-area-inset-top, 0px);
+  /* Siatka na telefonie (od 25.10.2026): 12 kolumn między brzegami treści i jedna rynna 8 px, ta sama między zakładkami, pigułkami
+     i ich rzędami, do tego jeden promień rogów (Jacek: „wszystko musi być równane do gridu … Kątki wszystkie też powinny być fajne”;
+     reguła siatka-wszedzie: na telefonie 8 px). Do wieczora 25.10.2026 rynna miała 12 px, a 8 px tylko poniżej 380 px. Szeroki ekran
+     (od 760 px) ma swoje 16 px. */
+  --km-rynna: 8px;
+  --km-rog: 18px;
+  /* Przyciski jak przyciski (od 26.10.2026; Jacek: „wybraliśmy … czwarte … takie mają być wszędzie. Koniec. Kropka”, „Słońce świecące
+     … z lewego górnego narożnika … pod 45 stopni … I takie drop shadow … szkło z iOS 26, reaktywność … Butony to są butony”): wariant 4
+     „Szkło z iOS 26” ze strony „Przyciski jak przyciski - propozycje” (projekt 15), oświetlony z lewego górnego rogu pod 45°: blask
+     i jasny brzeg z lewej u góry, ciemniejszy brzeg z prawej u dołu i cień rzucony w prawo w dół, w trzech warstwach. Wciśnięty rośnie
+     o 3% i rozświetla się od miejsca dotyku, puszczony wraca sprężyście. Te same liczby mają strony w zakładkach (SW w app.js) i okno
+     na komputerze. Do 26.10.2026 światło szło z góry, a wciśnięty przycisk zapadał się w cień. Napis na barwie wybranej zakładki jest
+     biały w jasnym motywie i czarny w ciemnym. */
+  --g3d: linear-gradient(135deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, 0) 46%, rgba(0, 0, 0, .045));
+  --g3d-barwa: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, .1));
+  --c3d: inset 1px 1px 0 rgba(255, 255, 255, .95), inset -1px -1px 0 rgba(0, 0, 0, .07), 0 0 0 .5px rgba(0, 0, 0, .16), 1px 1px 2px rgba(0, 0, 0, .12), 3px 3px 8px rgba(0, 0, 0, .1), 6px 6px 18px rgba(0, 0, 0, .06);
+  --blik: rgba(255, 255, 255, .95);
+  --plama-wcisk: rgba(255, 255, 255, .5);
+  --na-barwie: #ffffff;
+  /* Odstęp pod nawigacją na telefonie: zwykły (jak logo od góry ekranu) i najmniejszy, do którego da się ją przenieść (app.js). */
+  --km-dol-baza: max(calc(var(--km-gora) / 2 + 12px), calc(env(safe-area-inset-bottom) - 10px));
+  --km-dol-min: max(4px, calc(env(safe-area-inset-bottom) - 10px));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tlo: #000000;
+    --strona: #000000;
+    --tekst: #ffffff;
+    --tekst2: #c0bfbc;
+    --akcent: #409cff;
+    --akcent-tekst: #409cff;
+    --przycisk: #2c2c2e;
+    --wlos: rgba(255, 255, 255, .16);
+    --blysk: rgba(255, 255, 255, 0);
+    --cien: rgba(0, 0, 0, 0);
+    --cien-mocny: rgba(0, 0, 0, 0);
+    --g3d: linear-gradient(135deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, 0) 50%);
+    --g3d-barwa: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, .12));
+    --c3d: inset 1px 1px 0 rgba(255, 255, 255, .24), inset -1px -1px 0 rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .2);
+    --blik: rgba(255, 255, 255, .4);
+    --plama-wcisk: rgba(255, 255, 255, .22);
+    --na-barwie: #000000;
+  }
+}
+/* Krój Inter 4.1, ten sam co w stronach z komputera, więc cała aplikacja ma jeden krój. Copyright (c) 2016 The Inter Project
+   Authors, SIL Open Font License 1.1, licencja w pliku obok. Przycięty do łaciny z polskimi znakami, wagi 400–700. */
+@font-face { font-family: "Inter"; src: url("inter.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: swap; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--tlo);
+  color: var(--tekst);
+  font: 400 var(--zwykly)/1.4 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--akcent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+/* Tekst tylko dla czytnika ekranu (na przykład nowe miejsce przestawionej zakładki). */
+.ukryte { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Kształt kafelka ikon i gradienty: raz, dla wszystkich zakładek. Nie display: none, bo wtedy przeglądarki gubią gradienty. */
+.wzory { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* Nagłówek w jednym rzędzie, w siatce aplikacji: logo stoi nad lewą krawędzią treści, kółko asystenta nad prawą. Z prawej 4 px
+   mniej: kółko 40 px stoi w polu 48 px (czat.css, .czat-ikonka i .czat-otworz). Godziny skanu i ściągi nie ma (Jacek, 24.10.2026,
+   wieczorem: „nie potrzebujemy wiedzieć, kiedy został update'owany”, „tak prosto, że nie będzie potrzeba ściągi”). Rząd stoi na
+   środku szarego pola razem z pasem przy wycięciu ekranu (Jacek: „On jest niżej trochę. Ja bym wolał, żeby na środku”): połowa
+   wcięcia nad nim. Pod nim od 26.10.2026 tylko 8 px (Jacek: nagłówek „niepotrzebnie jest takie długie … Amatorsko to wygląda”): razem
+   z odstępem strony logo stoi na środku między górą ekranu a pierwszą rzeczą w treści, a całe to pole ma jeden odcień. */
+.glowa {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(var(--km-gora) / 2 + 8px) calc(var(--km-x1) - 4px) 8px var(--km-x0);
+}
+/* Miarki siatki dla app.js: szerokość cienkiego paska przewijania i marginesy w pikselach, razem z wcięciami ekranu. */
+.siatka-pasek { position: absolute; visibility: hidden; width: 100px; height: 40px; overflow: scroll; scrollbar-width: thin; }
+.siatka-sonda { position: absolute; visibility: hidden; height: 0; padding: 0 var(--km-prawo) 0 var(--km-lewo); }
+/* Logo nr 9 dla Kasi w kafelku jak ikona na ekranie głównym (logo.svg robi zrob-logo-w-aplikacji.js). Od 22.10.2026 to też
+   przycisk: od 25.10.2026 stuknięcie otwiera to samo menu Otomoto co napis (app.js, „napis”), a do 24.10.2026 otwierało poradnik. Wygląda dalej jak logo; pole dotyku ma 48 px,
+   a ujemny margines trzyma układ nagłówka taki, jak przy samym obrazku 40 px. */
+.logo { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; margin: -4px; padding: 0; border: 0; border-radius: 14px; background: none; }
+.logo img { display: block; width: 40px; height: 40px; transition: transform 120ms ease, filter 400ms ease; }
+/* Niespodzianka (od 26.10.2026, Jacek: „kolory trochę zmieni … w obu przypadkach … efekt dźwiękowy, ale może subtelne”): w kolorowym trybie
+   barwy logo przesuwają się o 28°, a przy każdym przełączeniu logo podskakuje raz (app.js, „Niespodzianka”, razem z cichym dźwiękiem). */
+body.kolorowo .logo img { filter: hue-rotate(28deg) saturate(1.3); }
+.logo.niespodzianka img { animation: niespodzianka 420ms cubic-bezier(.3, 1.7, .5, 1); }
+@keyframes niespodzianka { 40% { transform: scale(1.14) rotate(-6deg); } }
+.logo:active img { transform: scale(.94); }
+h1 { flex: 1; min-width: 0; display: flex; align-items: center; margin: 0 0 0 2px; }
+/* Napis to krzywe w wielkości --napis; kolory ma w sobie, za motywem systemu. */
+h1 .napis { display: block; flex: none; width: calc(var(--napis) * var(--szer)); height: calc(var(--napis) * var(--wys)); max-width: 100%; }
+/* Napis to też przycisk (od 22.10.2026): stuknięcie pokazuje te same wyszukiwania na Otomoto (app.js, „napis”). Wygląda dalej jak
+   napis. Pole dotyku ma 48 px wysokości, a ujemny margines trzyma układ nagłówka taki, jak przy samym napisie. */
+h1 .napis-przycisk { display: flex; align-items: center; min-width: 0; max-width: 100%; height: 48px; margin: -14px 0; padding: 0; border: 0; border-radius: 12px; background: none; }
+h1 .napis-przycisk .napis { transition: transform 120ms ease; }
+h1 .napis-przycisk:active .napis { transform: scale(.97); }
+main { flex: 1; min-height: 0; position: relative; }
+/* Zakładka: pigułki u góry (w Ogłoszeniach i w Katalagu) i pod nimi strona z komputera na całą resztę ekranu. Strony pod pigułkami
+   leżą jedna na drugiej, widać tę wybraną. */
+.widok { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.ramki { position: relative; flex: 1; min-height: 0; }
+.podwidok { position: absolute; inset: 0; }
+.widok iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--strona); }
+.pusto {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  padding: 24px var(--prawo) 24px var(--lewo);
+  color: var(--tekst2);
+  text-align: center;
+}
+.pusto p { max-width: 26em; margin: 0; text-wrap: balance; }
+/* Pigułka: białe tło, napis w akcencie, głębia jak kółka w nagłówku (reguła przyciski-zawsze-jak-przyciski). */
+.pigulka {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--przycisk);
+  color: var(--akcent-tekst);
+  font-size: var(--maly);
+  font-weight: 600;
+  box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 1px 2px var(--cien), 0 2px 6px var(--cien);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.pigulka:active { transform: scale(.96); }
+
+/* Pasek zakładek (od 19.10.2026): cztery osobne przyciski, ikona nad nazwą (Jacek przez Czytadło: „Rozdzielić, poproszę”; reguła
+   przyciski-zawsze-jak-przyciski, „Rząd przycisków”), od 25.10.2026 wieczorem przyciski 3D w barwach zakładek (część „Barwy zakładek”
+   niżej). Każda zakładka jest co najmniej tak szeroka jak jej pogrubiona nazwa, więc wybór niczego nie przesuwa, a pod kursorem jasna
+   plama szkła idzie za myszą i nic się nie rusza (Jacek, 20.10.2026: „literki się trochę przesuwają”). Od dolnej krawędzi ekranu pas
+   stoi tak daleko, jak logo od górnej (Jacek, 24.10.2026: „przynajmniej tak od krawędzi ekranu, tak bufor jest u góry”): połowa górnego
+   wcięcia i 12 px (--km-dol-baza). Na iPhonie to więcej niż wskaźnik ekranu głównego, a bez wcięć (przeglądarka) zostaje 12 px. */
+.dol {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  padding: 8px var(--km-x1) var(--km-dol-baza) var(--km-x0);
+  background-color: var(--tlo-pasa);
+  box-shadow: inset 0 .5px 0 var(--wlos);
+  transition: background-color 200ms ease;
+}
+.karty { position: relative; display: flex; gap: var(--km-rynna); }
+.karty [role="tab"] {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 5 px między ikoną a nazwą: przy 6 px wybrana zakładka stała przy 1,5× o 0,6 px ekranu od środka (pomiar na zrzutach). */
+  gap: 5px;
+  height: 56px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--km-rog);
+  background-color: var(--pastel);
+  background-image: var(--g3d);
+  color: var(--tekst);
+  font-size: clamp(12px, 3.4vw, 13px);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--c3d);
+  /* Przestawianie: zakładkę ciągnie się palcem albo myszą (app.js). Bez touch-action: none przeglądarka wzięłaby ruch palca
+     za przewijanie i przerwała ciągnięcie. Bez zaznaczania tekstu i menu iOS. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 120ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+/* Nazwa i jej pogrubiona kopia w jednej komórce (szerokość grubszej), przycięte do wersalików, więc ikona z nazwą stoją na środku. */
+.karty .nazwa { display: inline-grid; }
+.karty .nazwa > span, .karty .nazwa::after { grid-area: 1 / 1; white-space: nowrap; text-box: trim-both cap alphabetic; }
+.karty .nazwa::after { content: attr(data-nazwa); font-weight: 600; visibility: hidden; }
+.karty [role="tab"]:focus-visible { outline: 2px solid var(--akcent); outline-offset: 6px; }
+.znak { flex: none; display: block; width: 28px; height: 28px; }
+/* Szkło pod kursorem i pod palcem (wariant 4): pod kursorem błysk światła idzie za myszą po górnej krawędzi, a wciśnięta zakładka
+   rozświetla się od miejsca dotyku, między tłem a ikoną z nazwą (app.js podaje --mx i --my). Pigułki mają to samo. */
+.karty [role="tab"]::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 160ms ease;
+  background: radial-gradient(56px 14px at var(--mx, 50%) 0, var(--blik), rgba(255, 255, 255, 0));
+}
+@media (hover: hover) { .karty [role="tab"]:hover::after { opacity: 1; } }
+.karty [role="tab"]:active::after { opacity: 1; transition-duration: 50ms; background: radial-gradient(circle 80px at var(--mx, 50%) var(--my, 50%), var(--plama-wcisk), rgba(255, 255, 255, 0) 75%); }
+/* Ciągnięta zakładka unosi się nad resztą i jedzie pod palcem (przesunięcie i powiększenie o 6% daje app.js), a reszta robi jej miejsce. */
+.karty [role="tab"].ciagniety { z-index: 2; cursor: grabbing; box-shadow: 0 0 0 1px var(--barwa), 0 6px 16px var(--cien-mocny); }
+/* „Cofnij” stoi 6 sekund nad paskiem po przestawieniu zakładek (reguła cofnij-i-ponow: na telefonie nie ma Ctrl+Z). */
+.cofnij-zakladki { position: absolute; left: 0; right: 0; bottom: 100%; display: flex; justify-content: center; padding-bottom: 12px; pointer-events: none; }
+.cofnij-zakladki .pigulka { pointer-events: auto; box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); }
+/* Pigułka pod kursorem dostaje obwódkę w akcencie, jak przyciski w Ofertach. Napis stoi w miejscu (do 20.10.2026 unosiła się o 1 px). */
+@media (hover: hover) {
+  .pigulka:hover { box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--akcent), 0 1px 2px var(--cien), 0 2px 6px var(--cien); }
+  .cofnij-zakladki .pigulka:hover { box-shadow: inset 0 .5px 0 var(--blysk), 0 0 0 1px var(--akcent), 0 2px 6px var(--cien), 0 8px 24px var(--cien-mocny); }
+}
+
+/* Otwarte okno w stronie (szczegóły auta, filtry, galeria) dostaje cały ekran: bez nagłówka i bez zakładek. */
+body.okno .glowa { padding: var(--km-gora) 0 0; }
+body.okno .glowa > *, body.okno .dol, body.okno .podwidoki { display: none; }
+body.okno main { margin-bottom: env(safe-area-inset-bottom); }
+
+/* Szeroki ekran: iPhone w poziomie i przeglądarka na komputerze. Zakładki stoją pod nagłówkiem, ikona obok napisu, i wypełniają
+   kolumnę treści: do 1100 px całą szerokość treści, od 1100 px kolumnę aut w Ogłoszeniach (za filtrami). */
+@media (min-width: 760px) {
+  .glowa { order: -2; }
+  .dol { order: -1; padding: 4px var(--km-x1) 12px var(--km-x0); box-shadow: none; }
+  .karty { gap: 16px; }
+  /* Nazwa 16 px w pigułce 40 px, jak w Czytadle: przy 15 px wersaliki stały przy 4× o 0,45 px za wysoko. */
+  .karty [role="tab"] { flex-direction: row; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 20px; font-size: 16px; }
+  .znak { width: 24px; height: 24px; }
+  .cofnij-zakladki { top: 100%; bottom: auto; padding: 12px 0 0; }
+}
+@media (width > 1100px) { .dol { padding-left: calc(var(--km-x0) + var(--km-kolumna)); } }
+/* Od 1240 px zakładki mieszczą się w nagłówku, nad kolumną aut, na osi logo i kółek. */
+@media (min-width: 1240px) {
+  body { position: relative; }
+  /* Zakładki stoją w nagłówku, a pigułki zostają w nawigacji pod nim, nad treścią. */
+  .dol { padding: 0 var(--km-x1) 12px calc(var(--km-x0) + var(--km-kolumna)); }
+  .karty { position: fixed; z-index: 3; top: calc(var(--km-gora) / 2 + 12px); left: calc(var(--km-x0) + var(--km-kolumna)); }
+  /* Zakładki i pigułki po 176 px, co 16 px: dwie pigułki stoją dokładnie pod dwiema zakładkami, trzy pod trzema. */
+  .karty [role="tab"] { flex: 0 0 176px; }
+}
+/* Menu pod napisem (od 22.10.2026): te same wyszukiwania na Otomoto, ukryte pod napisem Kasiomobile® (Jacek: „easter egg”). Karta z włoskiem
+   i miękkim cieniem, w ciemnym sama obwódka. Każda pozycja to osobny przycisk z głębią, napis na środku wersalików. */
+.menu-otomoto {
+  position: fixed; z-index: 40; display: grid; gap: 8px; min-width: 264px; max-width: calc(100vw - 16px); padding: 8px; border-radius: 18px;
+  background: var(--tlo); box-shadow: 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 12px 32px var(--cien-mocny);
+}
+.menu-otomoto-tytul { margin: 4px 8px 0; color: var(--tekst2); font-size: 13px; font-weight: 600; }
+.menu-otomoto button {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 0 14px; border: 0; border-radius: 12px;
+  background-color: var(--przycisk); background-image: var(--g3d); color: var(--tekst); text-align: left;
+  box-shadow: var(--c3d);
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), box-shadow 120ms ease;
+}
+.menu-otomoto button:active { transform: scale(1.03); transition: transform 80ms ease, box-shadow 120ms ease; }
+@media (hover: hover) { .menu-otomoto button:hover { box-shadow: 0 0 0 1px var(--akcent), var(--c3d); } }
+.menu-otomoto-nazwa { text-box: trim-both cap alphabetic; }
+.menu-otomoto-znak { flex: none; color: var(--akcent-tekst); }
+@media (prefers-color-scheme: dark) { .menu-otomoto { background: #1c1c1e; box-shadow: 0 0 0 1px #48484a; } }
+/* Pigułki w nawigacji (od 25.10.2026): w Ofertach Teraz i Historia, na Podium Podium Otomoto, Modele Otomoto i Wszystkie marki,
+   w Finansach Leasing i Kredyt, a od wieczora w Poradniku Skrót i Całość. Stoją w nawigacji pod zakładkami (Jacek: „żebyśmy nie dzielili
+   nawigacji na dwa, góra i dół”, „Te dolne są zależne od górnych”), a widać rząd wybranej zakładki (app.js). Każda zakładka ma swój rząd,
+   więc nawigacja ma zawsze tę samą wysokość i nic nie skacze przy zmianie zakładki (Jacek: „nie ma przeskakiwania z menu”). Pigułka ma
+   ten sam promień co zakładka, a brzegi rzędu stoją na liniach siatki. Pigułka na Podium ma dwie linie: co to jest i skąd (Jacek: „Czym
+   są modele? … czy to są z Otomoto, czy nie”). Pole dotyku 48 px. */
+.podkarty { position: relative; }
+.podwidoki { display: flex; gap: var(--km-rynna); min-width: 0; }
+.podwidoki [role="radio"] {
+  position: relative; isolation: isolate; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; height: 44px; padding: 0 8px; border: 0; border-radius: var(--km-rog); background-color: var(--przycisk); background-image: var(--g3d);
+  color: var(--tekst); font-size: 15px; font-weight: 500; white-space: nowrap; box-shadow: var(--c3d);
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: transform 120ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+.podwidoki .nazwa { display: inline-grid; }
+.podwidoki .nazwa > span, .podwidoki .nazwa::after { grid-area: 1 / 1; white-space: nowrap; text-box: trim-both cap alphabetic; }
+.podwidoki .nazwa::after { content: attr(data-nazwa); font-weight: 600; visibility: hidden; }
+/* Druga linia pigułki („Otomoto”, „Marki”) ma ten sam krój, wielkość i barwę co pierwsza (od 26.10.2026, Jacek: „jakby … były mniejszymi
+   literami. Wszystko musi być równe. Marki … z dużej litery”; wcześniej 13 px w #3a3a3c). Jak pierwsza rezerwuje szerokość pogrubionej
+   wersji (klasa nazwa w index.html), więc wybór niczego nie przesuwa. */
+.podwidoki .skad { color: inherit; font-size: inherit; }
+.podwidoki [role="radio"]:focus-visible { outline: 2px solid var(--akcent); outline-offset: 2px; }
+.podwidoki [role="radio"]::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 160ms ease;
+  background: radial-gradient(56px 14px at var(--mx, 50%) 0, var(--blik), rgba(255, 255, 255, 0));
+}
+@media (hover: hover) { .podwidoki [role="radio"]:hover::after { opacity: 1; } }
+.podwidoki [role="radio"]:active::after { opacity: 1; transition-duration: 50ms; background: radial-gradient(circle 80px at var(--mx, 50%) var(--my, 50%), var(--plama-wcisk), rgba(255, 255, 255, 0) 75%); }
+.podwidoki [role="radio"]::before { content: ""; position: absolute; inset: -2px 0; }
+.podwidoki [role="radio"].ciagniety { z-index: 2; cursor: grabbing; box-shadow: 0 0 0 1px var(--barwa), 0 6px 16px var(--cien-mocny); }
+
+/* Barwy zakładek (od 25.10.2026 wieczorem; Jacek: „Zdechły niebieski … zdechłego zielonego … pseudo fiolet”, a paleta Apple: żywa barwa
+   do akcentu, pastel z niej do rzeczy dyskretnych). Każda zakładka ma barwę z palety systemowej Apple: pomarańczowe Oferty, niebieskie Podium,
+   zielone Finanse i fioletowy Poradnik (Oferty i Finanse zamieniły się barwami 26.10.2026, Jacek: „pomarańczowy jest excited”). --gleboka to ta barwa przyciemniona tak, że biały napis ma na niej od 4,5:1, --zywa-c to
+   żywa barwa ciemnego motywu, a --pastel z index.html to 16% barwy na bieli (w ciemnym 28% na #1c1c1e). --barwa to barwa wybranej rzeczy
+   w bieżącym motywie: tło wybranej zakładki i pigułki, pierścień i pasek przenoszenia. Tło nagłówka, nawigacji i stron jest we wszystkich
+   czterech zakładkach takie samo: biel, w ciemnym czerń (Jacek, 26.10.2026, po próbie z odcieniami barw zakładek na całym ekranie:
+   „ten eksperyment z kolorem … się nie udało, wracamy do bieli wszystkich czterech takiej samej”). Kontrast każdej pary liczy skrypt. */
+#seg-katalog, .podwidoki[data-z="katalog"], body[data-zakladka="katalog"] { --gleboka: #bc5500; --zywa-c: #ff9f0a; }
+#seg-modele, .podwidoki[data-z="modele"], body[data-zakladka="modele"] { --gleboka: #0071e3; --zywa-c: #0a84ff; }
+#seg-kredyt, .podwidoki[data-z="kredyt"], body[data-zakladka="kredyt"] { --gleboka: #1e7d36; --zywa-c: #30d158; }
+#seg-poradnik, .podwidoki[data-z="poradnik"], body[data-zakladka="poradnik"] { --gleboka: #9a4fcf; --zywa-c: #bf5af2; }
+body, .karty [role="tab"], .podwidoki { --barwa: var(--gleboka, var(--akcent)); }
+body { --tlo-pasa: var(--tlo); background-color: var(--tlo-pasa); }
+/* Kolorowe tło jako niespodzianka (od 26.10.2026; Jacek: „ten kolorowy … jest Easter … przełącznik … pod samym” logo): przytrzymanie logo
+   przez 0,6 s włącza i wyłącza odcień 10% barwy wybranej zakładki na całym ekranie, także pod stronami (app.js, „Niespodzianka”).
+   Domyślnie biel, w ciemnym motywie zawsze czerń. */
+@media (prefers-color-scheme: light) {
+  body.kolorowo[data-zakladka="katalog"] { --tlo-pasa: #ebf9ee; }
+  body.kolorowo[data-zakladka="modele"] { --tlo-pasa: #e6f2ff; }
+  body.kolorowo[data-zakladka="kredyt"] { --tlo-pasa: #fff4e6; }
+  body.kolorowo[data-zakladka="poradnik"] { --tlo-pasa: #f7eefc; }
+}
+@media (prefers-color-scheme: dark) {
+  body, .karty [role="tab"], .podwidoki { --barwa: var(--zywa-c, var(--akcent)); }
+  .karty [role="tab"]:not([aria-selected="true"]) { background-color: var(--pastel-c); }
+}
+.glowa { background-color: var(--tlo-pasa); transition: background-color 200ms ease; }
+body.okno .glowa { background-color: var(--strona); }
+/* Wybrana zakładka i pigułka (Jacek: „Butony muszą być butonami, a nie kawałkiem mięsa czy naklejki”, „wybrane ikony fizycznie jest
+   mniejsza niż te, co są niewybrane. To jest oczywisty błąd designerski”, „nie jestem fanem tej niebieskiej ramki”, „ładne były
+   rameczki … z dystansem … Nie tylko przylegające”): cała w barwie, z napisem na barwie, w pierścieniu 2 px z 2 px odstępu, który leży
+   w rynnie siatki. Ikona wybranej zakładki ma tę samą wielkość co na niewybranej, a kafelek w barwie napisu. Smuga światła przechodzi
+   przez wybraną raz, przy wyborze, i poza tym nic się nie rusza (od 26.10.2026, Jacek: „ograniczyć albo wyeliminować połyskiwania do
+   minimum”; wcześniej smuga co 12 s i jasny ślad wokół pierścienia co 7 s). Smuga zostaje też przy ograniczonym ruchu, bo mówi, co wybrano. */
+.karty [aria-selected="true"], .podwidoki [aria-checked="true"] {
+  font-weight: 600;
+  color: var(--na-barwie);
+  background-color: var(--barwa);
+  background-image: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .3) 50%, transparent 62%), var(--g3d-barwa);
+  background-size: 260% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0, 0 0;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .38), inset -1px -1px 0 rgba(0, 0, 0, .2), 1px 1px 2px rgba(0, 0, 0, .16), 3px 3px 10px color-mix(in srgb, var(--barwa) 42%, transparent), 6px 6px 18px rgba(0, 0, 0, .06);
+}
+.podwidoki [aria-checked="true"] { outline: 2px solid var(--barwa); outline-offset: 2px; }
+.karty [aria-selected="true"], .podwidoki [aria-checked="true"].blysk { animation: polyskRaz 1.2s ease-in-out 1; }
+@keyframes polyskRaz { from { background-position: 100% 0, 0 0; } to { background-position: 0 0, 0 0; } }
+.karty [aria-selected="true"] .znak use { fill: var(--na-barwie); }
+.karty [aria-selected="true"] .znak path { fill: var(--barwa); }
+.karty [aria-selected="true"]::before {
+  content: ""; position: absolute; inset: -4px; z-index: 1; padding: 2px; border-radius: calc(var(--km-rog) + 4px); pointer-events: none;
+  background: var(--barwa);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+@media (prefers-color-scheme: dark) {
+  .karty [aria-selected="true"], .podwidoki [aria-checked="true"] {
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .42), inset -1px -1px 0 rgba(0, 0, 0, .28), 3px 3px 14px color-mix(in srgb, var(--barwa) 35%, transparent);
+  }
+}
+/* Wciśnięty przycisk rośnie o 3% i rozświetla się od miejsca dotyku, a puszczony wraca sprężyście, jak szkło w iOS 26 (wariant 4;
+   do 26.10.2026 zapadał się o piksel i o 2%). Przy przeciąganiu przejście ustawia app.js. */
+.karty [role="tab"], .podwidoki [role="radio"] { transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1), box-shadow 160ms ease, background-color 160ms ease; }
+.karty [role="tab"]:active, .podwidoki [role="radio"]:active { transform: scale(1.03); transition: transform 80ms ease, box-shadow 160ms ease, background-color 160ms ease; }
+/* Rozmowa z asystentem otwarta (od 26.10.2026, Jacek: „bardzo nie podoba mi się … brak jakiejkolwiek nawigacji po tych czatach”):
+   na telefonie arkusz rozmowy kończy się nad nawigacją, a nawigacja stoi nad zasłoną i nad arkuszem, więc zakładki i pigułki widać
+   i działają. Stuknięcie w którąś zamyka rozmowę i pokazuje stronę (app.js). Na szerokim ekranie panel rozmowy leży nad nawigacją,
+   a nawigacja nad zasłoną. */
+body.czat-otwarty .dol { z-index: 43; }
+@media (min-width: 760px) { body.czat-otwarty .dol { z-index: 41; } }
+
+/* Nawigacja na telefonie (od 25.10.2026 wieczorem, druga wersja tego dnia): zwykły pas na dole, w układzie, bez szkła (Jacek: „nasze
+   liquid glass podróbka chińska … bardziej dla nowości niż dla użytkowości … musimy jednak przejść do prostoty”, „dajemy tam tło. Nie,
+   odcięcie”). Treść kończy się nad pasem, pas ma tło nagłówka i włosek u góry, a zakładki stoją nad pigułkami. Wszystko stoi na siatce
+   12 kolumn z jedną rynną (--km-rynna): cztery zakładki po 3 kolumny, dwie pigułki po 6, trzy po 4. Przeniesiony pas zmienia odstęp pod
+   sobą co do piksela (--km-nav-y z app.js, „przenoszenie”), najmniej do 4 px nad krawędzią ekranu albo nad wskaźnikiem ekranu głównego
+   iPhone'a (--km-dol-min). Podczas przenoszenia pas jedzie za palcem przesunięciem, a pod nim widać tło strony w tym samym odcieniu. */
+.miarka-dolu { position: absolute; visibility: hidden; height: 0; padding: var(--km-dol-baza) 0 var(--km-dol-min); }
+@media (max-width: 759px) {
+  .dol {
+    display: flex; flex-direction: column; gap: 16px; padding-top: 12px;
+    padding-bottom: max(var(--km-dol-min), calc(var(--km-dol-baza) + var(--km-nav-y, 0px)));
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .karty { order: 1; }
+  .podkarty { order: 2; }
+  /* Od 26.10.2026 zakładki i pigułki stoją co 12 px, a rzędy co 16 px, więc wokół pierścienia wybranej zostaje 8 px wolnego (Jacek:
+     „One się prawie dotykają lub się dotykają … jak one są wybrane”). Brzegi rzędów dalej stoją na brzegach treści. */
+  .karty, .podwidoki { gap: 12px; }
+  .dol.przenoszony { z-index: 30; box-shadow: inset 0 .5px 0 var(--wlos), 0 -8px 24px var(--cien-mocny); }
+  .dol.przenoszony > .karty, .dol.przenoszony > .podkarty { transform: scale(1.02); transition: transform 120ms ease; }
+  /* Przenoszenie: od 0,25 s przytrzymania nad pasem stoi pasek postępu, który przez 1,75 s wypełnia się od lewej do prawej, ze strzałką
+     w górę z lewej i w dół z prawej (Jacek: strzałki „muszą być widoczne … w dół i w górę”, a zapalanie po kolei „nie jest oczywiste”).
+     Gdy się wypełni, pas unosi się i jedzie za palcem. Pasek i strzałki mają barwę wybranej zakładki, tor 20% tej barwy. */
+  .postep-paska {
+    --szewron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 8'%3E%3Cpath d='M1.5 6.6 7 1.4l5.5 5.2' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    position: absolute; z-index: -1; bottom: 100%; left: 0; right: 0; height: 28px;
+    display: flex; align-items: center; gap: 12px; padding: 0 var(--km-x1) 0 var(--km-x0);
+    background: inherit; box-shadow: inset 0 .5px 0 var(--wlos); pointer-events: none; opacity: 0; transition: opacity 150ms ease;
+  }
+  .postep-paska i { flex: none; width: 14px; height: 8px; background: var(--barwa);
+    -webkit-mask: var(--szewron) center / contain no-repeat; mask: var(--szewron) center / contain no-repeat; }
+  .postep-paska .w-dol { transform: scaleY(-1); }
+  .postep-paska span { flex: 1; height: 6px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--barwa) 20%, transparent); }
+  .postep-paska span::after { content: ""; display: block; height: 100%; background: var(--barwa); transform: scaleX(0); transform-origin: left; }
+  .dol.trzyma .postep-paska { opacity: 1; }
+  .dol.trzyma .postep-paska span::after { animation: postepPaska var(--czas, 1750ms) linear forwards; }
+}
+@keyframes postepPaska { to { transform: scaleX(1); } }
+/* Szeroki ekran: pigułki stoją w jednym rzędzie pod zakładkami, nad treścią, każda tak szeroka jak zakładka (do 1240 px ćwierć kolumny
+   treści, potem 176 px), z tą samą przerwą, drugie słowo w tej samej linii drugim planem. Nawigacja się nie przenosi. */
+@media (min-width: 760px) {
+  .dol { display: flex; flex-direction: column; gap: 12px; }
+  .podkarty { order: 1; }
+  .podwidoki { gap: 16px; }
+  .podwidoki [role="radio"] { flex: 0 0 calc((100% - 48px) / 4); flex-direction: row; gap: 6px; height: 40px; padding: 0 16px; border-radius: 20px; font-size: 16px; }
+  .podwidoki .skad { font-size: 16px; }
+  .podwidoki [role="radio"]::before { inset: -4px 0; }
+  .karty [aria-selected="true"]::before { border-radius: 24px; }
+  .postep-paska { display: none; }
+}
+@media (min-width: 1240px) { .podwidoki [role="radio"] { flex: 0 0 176px; } }

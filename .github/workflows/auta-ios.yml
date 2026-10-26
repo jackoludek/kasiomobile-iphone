@@ -1,0 +1,50 @@
+# Buduje Kasiomobile na iPhone'a na Macu GitHuba i testuje je na symulatorze iPhone'a 13 Pro Max.
+# Wynik (artefakt „auta-iphone”): Auta.ipa bez kanału z autami, werdykt testu i zrzuty ekranu.
+# Ten plik leży w repozytorium jako .github/workflows/auta-ios.yml (kopiuje go iPhone-/zbuduj-na-githubie.ps1).
+# Repozytorium jest publiczne, bo wtedy budowa na Macu jest darmowa i bez limitu (od 26.10.2026). Kanał z autami przychodzi
+# z sekretu KANAL: trafia tylko do wersji na symulator, a z IPA i z plików wyniku znika, zanim wynik pójdzie na GitHuba.
+# Do IPA dopisuje go zbuduj-na-githubie.ps1 na komputerze.
+name: iPhone
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  buduj:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kanał z sekretu
+        env:
+          KANAL: ${{ secrets.KANAL }}
+        run: |
+          case "$KANAL" in ''|*[!a-z0-9-]*) echo "Brak sekretu KANAL albo zły znak w nim"; exit 1;; esac
+          printf "// Z sekretu KANAL przy budowie, nie leży w repozytorium.\nwindow.KANAL = '%s';\n" "$KANAL" > strona/kanal.js
+      - name: Zbuduj IPA i wersję na symulator
+        run: bash ios/buduj.sh
+      - name: Test na symulatorze iPhone'a 13 Pro Max
+        run: bash ios/test-symulator.sh
+      - name: Wynik bez kanału
+        if: always()
+        env:
+          KANAL: ${{ secrets.KANAL }}
+        run: |
+          mkdir -p wynik
+          if [ -f wynik/Auta.ipa ]; then
+            unzip -Z1 wynik/Auta.ipa > /tmp/lista-ipa.txt
+            if grep -q 'www/kanal\.js$' /tmp/lista-ipa.txt; then zip -qd wynik/Auta.ipa 'Payload/Auta.app/www/kanal.js'; fi
+            unzip -Z1 wynik/Auta.ipa > /tmp/lista-ipa.txt
+            if grep -q 'www/kanal\.js$' /tmp/lista-ipa.txt; then echo "kanal.js dalej jest w IPA"; exit 1; fi
+          fi
+          while IFS= read -r f; do sed -i '' "s/$KANAL/kanal/g" "$f"; done < <(grep -rlI -- "$KANAL" wynik || true)
+          if grep -rqI -- "$KANAL" wynik; then echo "Kanał dalej jest w plikach wyniku"; exit 1; fi
+      - name: Wynik
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auta-iphone
+          path: wynik/
+          retention-days: 30
