@@ -66,12 +66,18 @@
         if (e.getClientRects().length) zapamietaj(kontr, s, kontrast(rgb(getComputedStyle(e).color), tloPod(e)));
       }
     }
-    // Zakładka w trakcie przejścia (barwa wyboru 160 ms, przestawienie 320 ms) jest między dwiema barwami: 26.10.2026 symulator złapał
-    // wybraną w połowie drogi z bieli do pomarańczu (1,14:1, w spoczynku 4,70:1), więc taką pomijamy, a mierzą ją inne kroki.
-    const wRuchu = (e) => Boolean(e.getAnimations) && e.getAnimations().some((a) => a.pending || a.playState === 'running');
+    // Zakładka w trakcie przejścia (barwa wyboru 160 ms) stoi między dwiema barwami: 26.10.2026 o 14:04 symulator złapał wybraną w połowie
+    // drogi z bieli do pomarańczu (1,14:1, w spoczynku 4,70:1), a o 17:05 niewybraną (3,89:1, w spoczynku 13,7:1), choć test pomijał już
+    // zakładki w ruchu: Safari zaczyna przejście dopiero przy odczycie stylu. Dlatego na czas pomiaru przejścia stają (transition: none
+    // kończy je od razu) i liczą się barwy, na których zakładka się zatrzyma.
+    const bezPrzejscia = (lista, f) => {
+      const stare = lista.map((e) => [e, e.style.getPropertyValue('transition'), e.style.getPropertyPriority('transition')]);
+      for (const e of lista) e.style.setProperty('transition', 'none', 'important');
+      try { return f(); } finally { for (const [e, t, p] of stare) { if (t) e.style.setProperty('transition', t, p); else e.style.removeProperty('transition'); } }
+    };
     for (const b of document.querySelectorAll('.karty [role="tab"]')) {
       const wybrana = b.getAttribute('aria-selected') === 'true', napis = b.querySelector('.nazwa > span');
-      if (napis && !wRuchu(b) && !wRuchu(napis)) zapamietaj(kontr, wybrana ? 'zakładka wybrana' : 'zakładka', para(getComputedStyle(napis).color, getComputedStyle(b).backgroundColor));
+      if (napis) zapamietaj(kontr, wybrana ? 'zakładka wybrana' : 'zakładka', bezPrzejscia([b, napis], () => para(getComputedStyle(napis).color, getComputedStyle(b).backgroundColor)));
     }
     for (const s of ['#czat-otworz']) {
       const e = document.querySelector(s);
