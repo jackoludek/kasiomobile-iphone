@@ -241,3 +241,57 @@
 .czat-dymek { position: fixed; z-index: 1000; max-width: min(280px, calc(100vw - 16px)); padding: 6px 12px; border-radius: 10px;
   background: var(--cz-dymek-tlo); color: var(--cz-dymek-tekst); font: 500 13px/1.35 "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
   box-shadow: 0 0 0 .5px var(--cz-wlosek), 0 4px 14px rgba(0, 0, 0, .16); pointer-events: none; }
+/* Archiwum i kosz w historii rozmów (od 26.10.2026): rozmowa przesuwa się w bok nad kolorem celu (napis biały: archiwum #5856d6 5,7:1,
+   Historia #0071e3 4,7:1, kosz #d70015 5,4:1, w obu motywach). Lista nie przewija się w bok, gdy rozmowa wyjeżdża za krawędź. */
+.czat-panel { position: relative; }
+.czat-lista { overflow-x: hidden; }
+.czat-rozmowy { display: flex; flex-direction: column; gap: 12px; }
+.czat-wiersz { position: relative; border-radius: 18px; }
+.czat-wiersz > .czat-rozmowa { z-index: 1; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.czat-pod { position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; padding: 0 20px; border-radius: 18px;
+  color: #ffffff; font-size: 15px; font-weight: 600; opacity: 0; pointer-events: none; }
+.czat-wiersz.przesuwa > .czat-pod { opacity: 1; }
+.czat-wiersz[data-kierunek="prawo"] > .czat-pod { background-color: var(--k-prawo); }
+.czat-wiersz[data-kierunek="lewo"] > .czat-pod { background-color: var(--k-lewo); justify-content: flex-end; }
+.czat-pod-l, .czat-pod-p { display: inline-flex; align-items: center; gap: 8px; }
+.czat-pod-p { flex-direction: row-reverse; }
+.czat-wiersz[data-kierunek="prawo"] .czat-pod-p, .czat-wiersz[data-kierunek="lewo"] .czat-pod-l { display: none; }
+.czat-pod svg { flex: none; transition: transform 160ms cubic-bezier(.3, 1.7, .5, 1); }
+.czat-wiersz.gotowe .czat-pod svg { transform: scale(1.2); }
+/* Archiwum i kosz otwierają pigułki pod Historią (każda pigułka na pół szerokości, sama na całą), a w nich strzałka do Historii i nazwa. */
+.czat-schowki { display: flex; gap: 8px; margin-top: 4px; }
+.czat-schowek { flex: 1 1 0; justify-content: center; min-width: 0; }
+.czat-ile { min-width: 24px; height: 24px; margin-left: 2px; padding: 0 7px; border-radius: 12px; background: var(--cz-tlo);
+  box-shadow: inset 0 0 0 1px var(--cz-wlosek); font-size: 13px; line-height: 24px; text-align: center; }
+.czat-naglowek-listy { display: flex; align-items: center; gap: 12px; }
+.czat-gdzie { margin: 0; color: var(--cz-tekst); font-size: 17px; font-weight: 600; line-height: 1.3; }
+/* Menu rozmowy (przytrzymanie, prawy klik, klawisz menu): karta z ramką, pozycje to pigułki, kosz z czerwonym znakiem (4,4:1, grafika). */
+.czat-menu { position: absolute; z-index: 5; display: grid; gap: 8px; min-width: 220px; padding: 8px; border-radius: 22px;
+  background: var(--cz-tlo); box-shadow: 0 0 0 1px var(--cz-wlosek), 0 8px 28px var(--cz-cien); }
+.czat-menu-poz { justify-content: flex-start; width: 100%; margin: 0; }
+.czat-do-kosza > svg { color: var(--cz-czerwony); }
+/* „Cofnij” po ruchu rozmowy paruje jak szkło, tak jak w aplikacji (styl.css, „cofnij-paruje”): 0,2 s wpływa, do 1,2 s stoi cały,
+   do 2,5 s tło i cień schodzą (zostaje napis w obrysie, pod nim widać listę), potem napis paruje w górę. Pod kursorem i z fokusem stoi. */
+.czat-cofnij-pole { position: absolute; left: 0; right: 0; bottom: 20px; z-index: 4; display: flex; justify-content: center; pointer-events: none; }
+.czat-cofnij-pole .czat-pigulka { padding: 0 20px; pointer-events: auto; }
+.czat-cofnij-pole.paruje .czat-pigulka { animation: czat-paruje 4s linear forwards; }
+@media (hover: hover) { .czat-cofnij-pole.paruje .czat-pigulka:hover { animation: none; } }
+.czat-cofnij-pole.paruje .czat-pigulka:focus-visible { animation: none; }
+@keyframes czat-paruje {
+  0% { opacity: 0; transform: translateY(8px) scale(.94); animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+  5% { opacity: 1; transform: none; filter: blur(0); }
+  30% { background-color: var(--cz-szary); animation-timing-function: ease-in-out; }
+  62% { opacity: 1; transform: none; filter: blur(0); background-color: color-mix(in srgb, var(--cz-szary) 14%, transparent);
+    box-shadow: inset 1px 1px 0 transparent, inset -1px -1px 0 transparent, 0 0 0 1px var(--cz-wlosek), 0 0 0 transparent, 0 0 0 transparent, 0 0 0 transparent;
+    animation-timing-function: ease-in; }
+  100% { opacity: 0; transform: translateY(-6px) scale(1.06); filter: blur(3px); background-color: transparent;
+    box-shadow: inset 1px 1px 0 transparent, inset -1px -1px 0 transparent, 0 0 0 1px transparent, 0 0 0 transparent, 0 0 0 transparent, 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .czat-cofnij-pole.paruje .czat-pigulka { animation-name: czat-paruje-cicho; } }
+@keyframes czat-paruje-cicho {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  30% { background-color: var(--cz-szary); }
+  62% { opacity: 1; background-color: color-mix(in srgb, var(--cz-szary) 14%, transparent); }
+  100% { opacity: 0; background-color: transparent; }
+}

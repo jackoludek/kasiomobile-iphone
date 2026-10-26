@@ -19,7 +19,8 @@
 //                               mikrofon: true, glosNatywny: { start(klucz, ustawienia), stop(zaraz) }, naZmiane(otwarty),
 //                               dol(): ile pikseli od dołu ekranu ma zostać widać pod arkuszem, na przykład nawigacja aplikacji })
 //   Czat.dymek(przycisk): dymek przy ikonce bez podpisu. Wołaj go przed dodaniem własnego „click”.
-//   czat.wstecz(): Wstecz w telefonie; zamyka Historię, a gdy jej nie ma, rozmowę (true, gdy coś zamknął).
+//   czat.wstecz(): Wstecz w telefonie; zamyka menu rozmowy, z archiwum i kosza wraca do Historii, zamyka Historię, a gdy jej nie ma,
+//                  rozmowę (true, gdy coś zamknął).
 // Historia (od 26.10.2026): „Nowa rozmowa” odkłada bieżącą do Historii, a „Historia” pokazuje wcześniejsze i wraca do każdej z nich.
 'use strict';
 (() => {
@@ -37,6 +38,8 @@
     siec: 'Brak połączenia z internetem. Pytanie nie poszło.',
     klucz: 'Komputer nie dał klucza do mikrofonu. Może jest wyłączony.',
     mikrofon: 'Mikrofon nie ruszył. Sprawdź, czy Kasiomobile ma do niego dostęp w ustawieniach telefonu.',
+    // Zgoda jest, ale telefon nie dał dźwięku (od 26.10.2026: na Redmi tak było bez zgody MODIFY_AUDIO_SETTINGS w aplikacji).
+    mikrofonBrak: 'Telefon nie dał dźwięku z mikrofonu. Spróbuj jeszcze raz albo napisz pytanie.',
     soniox: 'Rozpoznawanie mowy nie odpowiedziało. Spróbuj jeszcze raz albo napisz pytanie.',
   };
   // Strumień odpowiedzi z ntfy.sh czytany na bieżąco; bez strumieni (stara przeglądarka) pytamy co 2,5 sekundy.
@@ -66,6 +69,10 @@
     dalej: '<path d="M9.3 6.3 15 12l-5.7 5.7-1.4-1.4 4.3-4.3-4.3-4.3z"/>',
     historia: '<path fill-rule="evenodd" d="M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zm0 1.9a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2zM11.05 7.5h1.9v4.45l3.3 1.95-.97 1.64-4.23-2.5z"/>',
     nowa: '<path d="M11.05 5h1.9v6.05H19v1.9h-6.05V19h-1.9v-6.05H5v-1.9h6.05z"/>',
+    // Archiwum, kosz i strzałka wstecz dla historii rozmów (od 26.10.2026), środek rysunku w punkcie 12, 12.
+    archiwum: '<path fill-rule="evenodd" d="M4 4.2h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zm.9 1.9v1.2h14.2V6.1zM4.9 11.1h1.9v6.8h10.4v-6.8h1.9v7.7a1 1 0 0 1-1 1H5.9a1 1 0 0 1-1-1zm4.6 1.7h5v1.9h-5z"/>',
+    kosz: '<path fill-rule="evenodd" d="M9.5 3.5h5l.8 1.5H19v1.9H5V5h3.7zM6.4 8.4h11.2l-.9 10.4a1.9 1.9 0 0 1-1.9 1.7H9.2a1.9 1.9 0 0 1-1.9-1.7zm2.1 1.9.7 8.3h5.6l.7-8.3z"/>',
+    wstecz: '<path d="M14.7 6.3 9 12l5.7 5.7 1.4-1.4-4.3-4.3 4.3-4.3z"/>',
   };
   const ikona = (n, r = 20) => `<svg width="${r}" height="${r}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${IKONY[n]}</svg>`;
 
@@ -137,7 +144,10 @@
     mikB.hidden = true;
     const wyslijB = przycisk('wyslij', 'Wyślij', 'czat-wyslij');
     const forma = el('form', { class: 'czat-pole' }, pole, mikB, wyslijB);
-    korzen.append(gora, lista, stanL, forma);
+    // „Cofnij” po przeniesieniu rozmowy do kosza albo archiwum (od 26.10.2026): nad dołem czatu, paruje w 4 s jak „Cofnij” w aplikacji.
+    const cofnijC = el('button', { type: 'button', class: 'czat-pigulka czat-cofnij', text: 'Cofnij' });
+    const cofnijPole = el('div', { class: 'czat-cofnij-pole', hidden: true }, cofnijC);
+    korzen.append(gora, lista, stanL, forma, cofnijPole);
     if (zaslona) document.body.append(zaslona);
     (o.miejsce || document.body).append(korzen);
 
@@ -251,9 +261,30 @@
     // Wcześniejsze rozmowy leżą w pamięci urządzenia (najwyżej 20, każda do 40 wiadomości) razem z identyfikatorem rozmowy dla komputera,
     // więc po powrocie da się dopytać dalej. Nic nie znika: nowa rozmowa odkłada bieżącą, a powrót do starej odkłada bieżącą też.
     const ARCHIWUM = 20;
-    let widokHistorii = false;
+    // Archiwum i kosz (od 26.10.2026, Jacek: „left i right swipe, jeden to będzie tam kasowanie do kosza, na jakiś czas. A drugi do
+    // archiwum”): rozmowę na liście przesuwa się palcem albo myszą w bok. Z Historii w lewo idzie do kosza (czerwony, jak w Poczcie
+    // Apple), w prawo do archiwum; z archiwum w prawo wraca do Historii, w lewo idzie do kosza; z kosza w prawo wraca do Historii.
+    // Kosz trzyma rozmowę 30 dni, potem znika sama, archiwum bez końca (najwyżej 50), a nadmiar Historii (ponad 20) idzie do archiwum.
+    // Stuknięcie zawsze otwiera rozmowę. Bez przesuwania to samo daje małe menu (przytrzymanie, prawy klik, klawisz menu), a Delete
+    // wysyła do kosza. Każdy ruch ma „Cofnij” (paruje w 4 s) i Ctrl+Z, Ctrl+Y.
+    const LISTY = { historia: 'archiwum', archiwum: 'w-archiwum', kosz: 'w-koszu' };
+    const NAJWIECEJ_W = { historia: ARCHIWUM, archiwum: 50, kosz: 50 };
+    const KOSZ_MS = 30 * 864e5;
+    const NAZWY_LIST = { archiwum: 'Archiwum', kosz: 'Kosz' };
+    const PUSTE = { historia: 'Wcześniejszych rozmów jeszcze nie ma.', archiwum: 'W archiwum nic nie ma.', kosz: 'Kosz jest pusty.' };
+    // Cel ruchu palca w prawo i w lewo w każdej liście i jego wygląd (biały napis: archiwum 5,7:1, Historia 4,7:1, kosz 5,4:1).
+    const AKCJE = { historia: { prawo: 'archiwum', lewo: 'kosz' }, archiwum: { prawo: 'historia', lewo: 'kosz' }, kosz: { prawo: 'historia', lewo: null } };
+    const CEL = {
+      archiwum: { napis: 'Do archiwum', ikona: 'archiwum', kolor: '#5856d6', cofnij: 'Cofnij przeniesienie do archiwum' },
+      kosz: { napis: 'Do kosza', ikona: 'kosz', kolor: '#d70015', cofnij: 'Cofnij przeniesienie do kosza' },
+      historia: { napis: 'Do Historii', ikona: 'historia', kolor: '#0071e3', cofnij: 'Cofnij powrót do Historii' },
+    };
+    const ruchy = { wstecz: [], naprzod: [] };
+    let widokHistorii = false, menuR = null, zegarCofnij = 0;
     function rysuj() {
       widokHistorii = false;
+      zamknijMenu(false);
+      pokazCofnijCzat(null);
       historiaB.setAttribute('aria-pressed', 'false');
       lista.setAttribute('aria-label', 'Rozmowa z asystentem');
       lista.replaceChildren(...(historia.length ? historia.map(wiadomosc) : [pusto()]));
@@ -262,12 +293,27 @@
       przyciski();
       naDol();
     }
-    const archiwum = () => { const a = pamiec.czytaj('archiwum', []); return Array.isArray(a) ? a.filter((r) => r && Array.isArray(r.wpisy) && r.wpisy.length) : []; };
+    const wsteczHistorii = () => (widokHistorii === 'historia' ? rysuj() : pokazHistorie('historia'));
+    function czytajListe(n) {
+      const a = pamiec.czytaj(LISTY[n], []);
+      let l = Array.isArray(a) ? a.filter((r) => r && Array.isArray(r.wpisy) && r.wpisy.length) : [];
+      if (n === 'kosz') {
+        const swieze = l.filter((r) => Date.now() - (r.usunieto || 0) < KOSZ_MS);
+        if (swieze.length !== l.length) { l = swieze; pamiec.zapisz(LISTY.kosz, l); }
+      }
+      return l;
+    }
+    function zapiszListe(n, l) {
+      if (n === 'historia' && l.length > NAJWIECEJ_W.historia) zapiszListe('archiwum', l.splice(NAJWIECEJ_W.historia).concat(czytajListe('archiwum')));
+      pamiec.zapisz(LISTY[n], l.slice(0, NAJWIECEJ_W[n]));
+    }
+    const archiwum = () => czytajListe('historia');
+    const ta = (r) => (x) => x.id === r.id && x.czas === r.czas;
     function odloz() {
       if (!historia.length) return;
       const a = archiwum();
       a.unshift({ id: pamiec.czytaj('rozmowa', null) || losowe(), czas: pamiec.czytaj('ostatnio', Date.now()), wpisy: historia });
-      pamiec.zapisz('archiwum', a.slice(0, ARCHIWUM));
+      zapiszListe('historia', a);
     }
     function odNowa() {
       odloz();
@@ -288,12 +334,13 @@
       if (!historia.length || pracuje || czeka.size || (pamiec.czytaj('czeka', []) || []).length) return;
       if (Date.now() - pamiec.czytaj('ostatnio', 0) > NOWA_ROZMOWA_MS) odNowa();
     }
-    function wrocDo(i) {
+    // Otwiera rozmowę z Historii, archiwum albo kosza: wraca jako bieżąca, a bieżąca idzie do Historii.
+    function wrocDo(n, r) {
       if (pracuje) return;
-      const a = archiwum(), r = a[i];
-      if (!r) return;
+      const a = czytajListe(n), i = a.findIndex(ta(r));
+      if (i < 0) return;
       a.splice(i, 1);
-      pamiec.zapisz('archiwum', a);
+      zapiszListe(n, a);
       odloz();
       historia = r.wpisy.slice(-NAJWIECEJ);
       zapiszHistorie();
@@ -309,22 +356,196 @@
       return d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + godz;
     }
     const pytan = (n) => `${n} ${n === 1 ? 'pytanie' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'pytania' : 'pytań'}`;
-    function pokazHistorie() {
+    const rozmow = (n) => `${n} ${n === 1 ? 'rozmowa' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'rozmowy' : 'rozmów'}`;
+    // Ile dni rozmowa jeszcze poleży w koszu.
+    function zniknie(t) {
+      const d = Math.max(1, Math.ceil(((t || 0) + KOSZ_MS - Date.now()) / 864e5));
+      return `Zniknie za ${d} ${d === 1 ? 'dzień' : 'dni'}`;
+    }
+    // Przenosi rozmowę między listami: na początek celu albo na podane miejsce (cofanie). Oddaje krok do cofnięcia.
+    function przenies(z, na, r, miejsce) {
+      const a = czytajListe(z), i = a.findIndex(ta(r));
+      if (i < 0) return null;
+      const [x] = a.splice(i, 1);
+      zapiszListe(z, a);
+      if (na === 'kosz') x.usunieto = Date.now(); else delete x.usunieto;
+      const b = czytajListe(na), j = Math.min(miejsce === undefined ? 0 : miejsce, b.length);
+      b.splice(j, 0, x);
+      zapiszListe(na, b);
+      return { id: x.id, czas: x.czas, z, na, i, j };
+    }
+    function ruch(z, na, r) {
+      const k = przenies(z, na, r);
+      if (!k) return;
+      ruchy.wstecz.push(k);
+      if (ruchy.wstecz.length > 50) ruchy.wstecz.shift();
+      ruchy.naprzod.length = 0;
+      pokazHistorie(widokHistorii || z, true);
+      pokazCofnijCzat(CEL[na].cofnij);
+    }
+    // Cofa albo ponawia ostatni ruch rozmowy. Oddaje false, gdy nie było czego.
+    function cofnijRuch(ponow) {
+      const k = (ponow ? ruchy.naprzod : ruchy.wstecz).pop();
+      if (!k) return false;
+      if (ponow ? przenies(k.z, k.na, k, k.j) : przenies(k.na, k.z, k, k.i)) (ponow ? ruchy.wstecz : ruchy.naprzod).push(k);
+      pokazCofnijCzat(null);
+      if (widokHistorii) pokazHistorie(widokHistorii, true);
+      return true;
+    }
+    function pokazCofnijCzat(opis) {
+      clearTimeout(zegarCofnij);
+      cofnijPole.classList.remove('paruje');
+      cofnijPole.hidden = !opis;
+      if (!opis) return;
+      cofnijC.setAttribute('aria-label', opis);
+      void cofnijPole.offsetWidth;
+      cofnijPole.classList.add('paruje');
+      if (getComputedStyle(cofnijC).animationName === 'none' && !cofnijC.matches(':hover, :focus-visible')) zegarCofnij = setTimeout(() => pokazCofnijCzat(null), 4000);
+    }
+    function zamknijMenu(fokus) {
+      if (!menuR) return false;
+      const z = menuR.zrodlo;
+      menuR.remove();
+      menuR = null;
+      if (fokus && z && z.isConnected) z.focus({ preventScroll: true });
+      return true;
+    }
+    // Małe menu przy rozmowie (przytrzymanie, prawy klik, klawisz menu): te same ruchy co przesunięcie w bok, pozycje jako pigułki.
+    function menuRozmowy(b, pozycje) {
+      zamknijMenu(false);
+      const m = el('div', { class: 'czat-menu', role: 'menu', 'aria-label': 'Rozmowa' });
+      for (const p of pozycje) {
+        const x = el('button', { type: 'button', role: 'menuitem', class: 'czat-pigulka czat-menu-poz' + (p.cel === 'kosz' ? ' czat-do-kosza' : ''), html: ikona(p.ikona, 20) });
+        x.append(el('span', { text: p.napis }));
+        x.addEventListener('click', () => { zamknijMenu(false); p.zrob(); });
+        m.append(x);
+      }
+      m.zrodlo = b;
+      korzen.append(m);
+      menuR = m;
+      const k = korzen.getBoundingClientRect(), r = b.getBoundingClientRect(), s = m.getBoundingClientRect();
+      const pod = r.bottom + 8 + s.height <= k.bottom - 8;
+      m.style.top = Math.round((pod ? r.bottom + 8 : Math.max(k.top + 8, r.top - 8 - s.height)) - k.top) + 'px';
+      m.style.left = Math.round(Math.max(8, Math.min(r.left - k.left, k.width - s.width - 8))) + 'px';
+      m.querySelector('button').focus({ preventScroll: true });
+    }
+    // Wiersz odjeżdża w bok, lista się domyka, a potem rozmowa idzie do celu (ruch szuka jej po id, więc przerysowanie w tym czasie nie szkodzi).
+    function odjedz(w, b, kier, zrob) {
+      const r = w.getBoundingClientRect();
+      w.classList.add('przesuwa', 'odjezdza');
+      w.dataset.kierunek = kier > 0 ? 'prawo' : 'lewo';
+      b.style.transition = 'transform 200ms cubic-bezier(.2, 0, 0, 1)';
+      b.style.transform = `translateX(${kier * (r.width + 48)}px)`;
+      w.style.height = r.height + 'px';
+      setTimeout(() => {
+        w.style.transition = 'height 200ms cubic-bezier(.2, 0, 0, 1), margin 200ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease';
+        w.style.height = '0px';
+        w.style.marginBottom = '-12px';
+        w.style.opacity = '0';
+      }, 160);
+      setTimeout(zrob, 380);
+    }
+    // Przesuwanie w bok (palec, pióro i mysz): rusza po 10 px, gdy ruch idzie bardziej w bok niż w pionie (w pionie lista się przewija,
+    // touch-action: pan-y). Za progiem (35% szerokości, najwyżej 120 px) wiersz odjeżdża do celu, przed progiem wraca. W stronę bez celu
+    // wiersz stawia opór. Przytrzymanie palcem 0,5 s bez ruchu otwiera menu, a klik po przesunięciu albo przytrzymaniu nie otwiera rozmowy.
+    function przesuwalny(w, b, akcje, pozycje) {
+      let s = null, dx = 0, tryb = '', zegar = 0, bezKliku = 0;
+      const prog = () => Math.min(120, w.getBoundingClientRect().width * 0.35);
+      const ustaw = (x, czas) => { b.style.transition = czas ? `transform ${czas}ms cubic-bezier(.2, 0, 0, 1)` : 'none'; b.style.transform = x ? `translateX(${x}px)` : ''; };
+      b.addEventListener('pointerdown', (e) => {
+        if (pracuje || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        s = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        dx = 0;
+        tryb = '';
+        clearTimeout(zegar);
+        if (e.pointerType !== 'mouse') zegar = setTimeout(() => { if (s && !tryb) { tryb = 'menu'; bezKliku = Date.now(); menuRozmowy(b, pozycje); if (navigator.vibrate) navigator.vibrate(10); } }, 500);
+      });
+      b.addEventListener('pointermove', (e) => {
+        if (!s || e.pointerId !== s.id || tryb === 'menu') return;
+        const x = e.clientX - s.x, y = e.clientY - s.y;
+        if (!tryb) {
+          if (Math.abs(x) < 10 && Math.abs(y) < 10) return;
+          clearTimeout(zegar);
+          if (Math.abs(x) <= Math.abs(y)) { s = null; return; }
+          tryb = 'w-bok';
+          try { b.setPointerCapture(e.pointerId); } catch { /* bez przechwycenia */ }
+          w.classList.add('przesuwa');
+        }
+        const kier = x > 0 ? 'prawo' : 'lewo', a = akcje[kier];
+        dx = a ? x : x / 5;
+        w.dataset.kierunek = kier;
+        const gotowe = Boolean(a) && Math.abs(dx) >= prog();
+        if (gotowe !== w.classList.contains('gotowe')) { w.classList.toggle('gotowe', gotowe); if (gotowe && navigator.vibrate) navigator.vibrate(8); }
+        ustaw(dx, 0);
+      });
+      const koniec = (e, przerwane) => {
+        clearTimeout(zegar);
+        if (!s || e.pointerId !== s.id) return;
+        const t = tryb;
+        s = null;
+        tryb = '';
+        if (t === 'menu') { bezKliku = Date.now(); return; }
+        if (t !== 'w-bok') return;
+        bezKliku = Date.now();
+        const a = akcje[dx > 0 ? 'prawo' : 'lewo'];
+        if (!przerwane && a && Math.abs(dx) >= prog()) { odjedz(w, b, Math.sign(dx), a); return; }
+        w.classList.remove('gotowe');
+        ustaw(0, 240);
+        setTimeout(() => { if (!w.classList.contains('odjezdza')) { w.classList.remove('przesuwa'); b.style.transition = ''; } }, 260);
+      };
+      b.addEventListener('pointerup', (e) => koniec(e, false));
+      b.addEventListener('pointercancel', (e) => koniec(e, true));
+      // Ten słuchacz stoi przed słuchaczem otwarcia (dodany wcześniej), więc zatrzymuje go po przesunięciu albo przytrzymaniu.
+      b.addEventListener('click', (e) => { if (Date.now() - bezKliku < 600) { e.preventDefault(); e.stopImmediatePropagation(); } });
+      b.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!menuR || menuR.zrodlo !== b) menuRozmowy(b, pozycje); });
+      // Po przytrzymaniu palcem przeglądarka daje jeszcze „mousedown”, który zabrałby fokus z menu z powrotem na rozmowę.
+      b.addEventListener('mousedown', (e) => { if (Date.now() - bezKliku < 600) e.preventDefault(); });
+    }
+    // Rozmowa na liście: przycisk, który ją otwiera, a pod nim kolor celu z napisem, widoczny przy przesuwaniu w bok.
+    function wierszRozmowy(n, r) {
+      const pytania = r.wpisy.filter((x) => x.kto === 'ja'), { prawo, lewo } = AKCJE[n];
+      const b = el('button', { type: 'button', class: 'czat-rozmowa' },
+        el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? pytania[0].tekst : 'Rozmowa' }),
+        el('span', { class: 'czat-rozmowa-kiedy', text: `${n === 'kosz' ? zniknie(r.usunieto) : kiedy(r.czas)} · ${pytan(pytania.length)}` }));
+      const strona = (cel, klasa) => (cel ? el('span', { class: klasa, html: ikona(CEL[cel].ikona, 22) }, el('span', { text: CEL[cel].napis })) : null);
+      const w = el('div', { class: 'czat-wiersz', style: `--k-prawo:${prawo ? CEL[prawo].kolor : 'transparent'};--k-lewo:${lewo ? CEL[lewo].kolor : 'transparent'}` },
+        el('div', { class: 'czat-pod', 'aria-hidden': 'true' }, strona(prawo, 'czat-pod-l'), strona(lewo, 'czat-pod-p')), b);
+      const zrob = (cel) => () => ruch(n, cel, r);
+      const pozycje = [prawo, lewo].filter(Boolean).map((cel) => ({ cel, napis: CEL[cel].napis, ikona: CEL[cel].ikona, zrob: () => odjedz(w, b, cel === lewo ? -1 : 1, zrob(cel)) }));
+      przesuwalny(w, b, { prawo: prawo ? zrob(prawo) : null, lewo: lewo ? zrob(lewo) : null }, pozycje);
+      b.addEventListener('click', () => wrocDo(n, r));
+      b.addEventListener('keydown', (e) => { if (e.key === 'Delete' && lewo === 'kosz') { e.preventDefault(); odjedz(w, b, -1, zrob('kosz')); } });
+      return w;
+    }
+    function pokazHistorie(n = 'historia', zostan = false) {
       if (pracuje) return;
       if (glos.stan !== 'nic') glosStop(false);
-      widokHistorii = true;
+      zamknijMenu(false);
+      const bylo = lista.scrollTop;
+      widokHistorii = n;
       historiaB.setAttribute('aria-pressed', 'true');
-      lista.setAttribute('aria-label', 'Wcześniejsze rozmowy');
-      const a = archiwum();
-      lista.replaceChildren(a.length ? el('div', { class: 'czat-rozmowy' }, ...a.map((r, i) => {
-        const pierwsze = r.wpisy.find((w) => w.kto === 'ja');
-        const b = el('button', { type: 'button', class: 'czat-rozmowa' },
-          el('span', { class: 'czat-rozmowa-tytul', text: pierwsze ? pierwsze.tekst : 'Rozmowa' }),
-          el('span', { class: 'czat-rozmowa-kiedy', text: `${kiedy(r.czas)} · ${pytan(r.wpisy.filter((w) => w.kto === 'ja').length)}` }));
-        b.addEventListener('click', () => wrocDo(i));
-        return b;
-      })) : el('p', { class: 'czat-pusto', text: 'Wcześniejszych rozmów jeszcze nie ma.' }));
+      lista.setAttribute('aria-label', n === 'historia' ? 'Wcześniejsze rozmowy' : NAZWY_LIST[n]);
+      const a = czytajListe(n), tresc = [];
+      if (n !== 'historia') {
+        const wroc = pigulka('wstecz', 'Historia', 'czat-wroc');
+        wroc.addEventListener('click', () => pokazHistorie('historia'));
+        tresc.push(el('div', { class: 'czat-naglowek-listy' }, wroc, el('h3', { class: 'czat-gdzie', text: NAZWY_LIST[n] })));
+      }
+      tresc.push(a.length ? el('div', { class: 'czat-rozmowy' }, ...a.map((r) => wierszRozmowy(n, r))) : el('p', { class: 'czat-pusto', text: PUSTE[n] }));
+      if (n === 'historia') {
+        const schowki = ['archiwum', 'kosz'].map((m) => [m, czytajListe(m).length]).filter(([, ile]) => ile).map(([m, ile]) => {
+          const b = pigulka(m, NAZWY_LIST[m], 'czat-schowek');
+          b.append(el('span', { class: 'czat-ile', text: String(ile) }));
+          b.setAttribute('aria-label', `${NAZWY_LIST[m]}: ${rozmow(ile)}`);
+          b.addEventListener('click', () => pokazHistorie(m));
+          return b;
+        });
+        if (schowki.length) tresc.push(el('div', { class: 'czat-schowki' }, ...schowki));
+      }
+      lista.replaceChildren(...tresc);
       forma.hidden = true;
+      if (zostan) { lista.scrollTop = bylo; return; }
+      pokazCofnijCzat(null);
       stan('');
       lista.scrollTop = 0;
     }
@@ -489,6 +710,8 @@
       if (o.naZmiane) o.naZmiane(true);
     }
     function zamknij() {
+      zamknijMenu(false);
+      pokazCofnijCzat(null);
       if (glos.stan !== 'nic') glosStop(false);
       if (tryb === 'strona') { if (o.zamknij) o.zamknij(); return; }
       if (!otwarty()) return;
@@ -503,15 +726,32 @@
       if (o.naZmiane) o.naZmiane(false);
     }
     zamknijB.addEventListener('click', zamknij);
-    historiaB.addEventListener('click', () => (widokHistorii ? rysuj() : pokazHistorie()));
+    historiaB.addEventListener('click', () => (widokHistorii === 'historia' ? rysuj() : pokazHistorie('historia')));
     nowaB.addEventListener('click', nowaRozmowa);
+    cofnijC.addEventListener('click', () => cofnijRuch(false));
+    cofnijC.addEventListener('animationend', (e) => { if (e.animationName.startsWith('czat-paruje')) pokazCofnijCzat(null); });
+    // Menu rozmowy zamyka stuknięcie obok i przewinięcie listy.
+    document.addEventListener('pointerdown', (e) => { if (menuR && !menuR.contains(e.target)) zamknijMenu(false); }, true);
+    lista.addEventListener('scroll', () => zamknijMenu(false), { passive: true });
     if (zaslona) zaslona.addEventListener('click', zamknij);
     forma.addEventListener('submit', (e) => { e.preventDefault(); wyslij(pole.value); });
     wyslijB.addEventListener('click', () => wyslij(pole.value));
     pole.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); wyslij(pole.value); } });
     pole.addEventListener('input', () => { rosnij(); przyciski(); });
     korzen.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); if (glos.stan !== 'nic') glosStop(false); else if (widokHistorii) rysuj(); else zamknij(); return; }
+      if (menuR) {
+        const l = [...menuR.querySelectorAll('button')], i = l.indexOf(document.activeElement), dol = e.key === 'ArrowDown';
+        if (e.key === 'Escape') { e.preventDefault(); zamknijMenu(true); return; }
+        if (dol || e.key === 'ArrowUp') { e.preventDefault(); l[i < 0 ? (dol ? 0 : l.length - 1) : (i + (dol ? 1 : l.length - 1)) % l.length].focus(); return; }
+        if (e.key === 'Tab') zamknijMenu(false);
+      }
+      // Ctrl+Z i Ctrl+Y w historii cofają i ponawiają ruchy rozmów (reguła cofnij-i-ponow); bez ruchu do cofnięcia działa skrót aplikacji.
+      const zy = (e.key || '').toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (zy === 'z' || zy === 'y') && widokHistorii && e.target !== pole) {
+        if (cofnijRuch(zy === 'y' || e.shiftKey)) { e.preventDefault(); e.stopPropagation(); }
+        return;
+      }
+      if (e.key === 'Escape') { e.preventDefault(); if (glos.stan !== 'nic') glosStop(false); else if (widokHistorii) wsteczHistorii(); else zamknij(); return; }
       if (e.key !== 'Tab' || tryb !== 'arkusz') return;
       const f = [...korzen.querySelectorAll('button, a[href], textarea')].filter((x) => !x.disabled && x.offsetParent !== null);
       if (!f.length) return;
@@ -604,7 +844,7 @@
       // kawałki co 60 ms. Do 20.10.2026 z redukcją szumu i echa oraz kawałkami co 250 ms.
       try {
         glos.media = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      } catch { glosKoniec(ZDANIA.mikrofon); return; }
+      } catch (e) { glosKoniec(e && /NotAllowed|Security/.test(e.name) ? ZDANIA.mikrofon : ZDANIA.mikrofonBrak); return; }
       if (glos.stan !== 'start') { glosSprzatnij(); return; }
       const ws = new WebSocket(SONIOX, ['soniox-api-key', k]);
       glos.ws = ws;
@@ -617,7 +857,7 @@
           rec.ondataavailable = (e) => { if (e.data && e.data.size && ws.readyState === 1) ws.send(e.data); };
           rec.onstop = () => { if (ws.readyState === 1) ws.send(''); };
           rec.start(60);
-        } catch { glosKoniec(ZDANIA.mikrofon); return; }
+        } catch { glosKoniec(ZDANIA.mikrofonBrak); return; }
         glos.stan = 'nagrywa';
         pokazGlos();
       };
@@ -708,7 +948,7 @@
     }
     zapiszCzekajace();
     const wrocDoRozmowy = () => { if (!doRozmowy || Date.now() - doRozmowy > 600000) return false; doRozmowy = 0; otworz(); return true; };
-    const wstecz = () => { if (widokHistorii) { rysuj(); return true; } if (!otwarty()) return false; zamknij(); return true; };
+    const wstecz = () => { if (zamknijMenu(true)) return true; if (widokHistorii) { wsteczHistorii(); return true; } if (!otwarty()) return false; zamknij(); return true; };
     const api = { otworz, zamknij, przelacz: () => (otwarty() ? zamknij() : otworz()), otwarty, wyslij, zGlosu, korzen, pracuje: () => pracuje, wrocDoRozmowy, wstecz };
     aktywny = api;
     return api;
