@@ -61,12 +61,20 @@ etap() {
 }
 etap 1 light
 etap 2 dark
+# Wygląd z sieci (od 26.10.2026): aplikacja pobiera stronę z https://jackoludek.github.io/kasiomobile/aplikacja/, sprawdza SHA-256 każdego
+# pliku i wczytuje stronę z pobranych plików (tu bez porównania z wersją z aplikacji, więc wszystko idzie z sieci).
+xcrun simctl launch "$UDID" "$ID" --test-wyglad
+for i in $(seq 1 120); do [ -f "$DANE/Documents/test-wyglad.json" ] && break; sleep 1; done
+zrzut "wyglad-z-sieci"
+xcrun simctl terminate "$UDID" "$ID" || true
+cp "$DANE/Documents/test-wyglad.json" "$WYNIK/" 2>/dev/null || echo '{"blad": "brak wyniku w 120 s"}' > "$WYNIK/test-wyglad.json"
 cp "$DANE/Documents/"test-etap*.json "$WYNIK/"
 python3 - "$WYNIK" <<'PY'
 import json, sys, os
 w = sys.argv[1]
 e1 = json.load(open(os.path.join(w, "test-etap1.json")))
 e2 = json.load(open(os.path.join(w, "test-etap2.json")))
+ew = json.load(open(os.path.join(w, "test-wyglad.json")))
 o1, o2 = e1.get("odswiezenie") or {}, e2.get("odswiezenie") or {}
 n1, n2 = e1.get("naStarcie") or {}, e2.get("naStarcie") or {}
 slabe = ["%s %s: %s" % (m, s, k) for m, e in (("jasny", e1), ("ciemny", e2)) for s, k in (e.get("kontrast") or {}).items() if k < 4.5]
@@ -144,6 +152,8 @@ spr = [
     ("poradnik od skrótu: Czytaj całość, po ponownym uruchomieniu znowu skrót",
      e1.get("poradnikSkrot") == "strona bez skrótu" or (e1.get("poradnikSkrot") is True and e1.get("poradnikCalosc") is True and e2.get("poradnikPamieta") is False),
      "skrót: %s, całość: %s, po starcie całość: %s" % (e1.get("poradnikSkrot"), e1.get("poradnikCalosc"), e2.get("poradnikPamieta"))),
+    ("wygląd z sieci: pobrany, sprawdzony SHA-256 i wczytany", ew.get("zrodlo") == "pobrana" and (ew.get("pobrane") or 0) >= 5 and ew.get("auta") == "object",
+     json.dumps(ew, ensure_ascii=False)[:300]),
 ]
 linie = ["%s %s %s" % ("ok  " if ok else "BŁĄD", nazwa, opis or "") for nazwa, ok, opis in spr]
 bledy = sum(1 for _, ok, _ in spr if not ok)

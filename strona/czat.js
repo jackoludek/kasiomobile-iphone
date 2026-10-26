@@ -797,13 +797,15 @@
 
     // ---------------------------------------------------------------- mikrofon (Soniox)
     const natywny = o.glosNatywny || null;
-    const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true };
+    // max_endpoint_delay_ms (od 26.10.2026): Soniox daje „<end>” najpóźniej 1 s po ostatnim słowie, a nie po 2 s (domyślnie; dozwolone
+    // 500–3000, https://soniox.com/docs/stt/rt/endpoint-detection). Pauzę między zdaniami i tak przeczekuje CHWILA_MS niżej.
+    const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true, max_endpoint_delay_ms: 1000 };
     // Soniox daje „<end>” już na pauzie krótszej niż sekunda między zdaniami (26.10.2026, rozmowa „Rozmowa z Opusem” na prawdziwym Soniox,
     // przy każdym ustawieniu wykrywania końca), więc po „<end>” czat czeka jeszcze CHWILA_MS. Nowe słowa w tym czasie znaczą, że pytanie
     // trwa: czekanie znika i zaczyna się od nowa przy następnym „<end>”. Pytanie idzie więc około 2 s po ostatnim słowie, a mikrofon
     // stuknięty w trakcie wysyła od razu. To samo na iPhonie, bo słowa ze Swifta idą przez zSoniox.
     const CHWILA_MS = 1500;
-    const glos = { stan: 'nic', ws: null, rec: null, media: null, gotowe: '', tym: '', wyslij: true, zegar: 0, chwila: 0 };
+    const glos = { stan: 'nic', ws: null, rec: null, media: null, gotowe: '', tym: '', wyslij: true, zegar: 0, chwila: 0, zegarKlucza: 0, maKlucz: false, czekaNaKlucz: false };
     // „glos: false” (komputer nie da klucza) chowa mikrofon na 20 minut, a nie na zawsze (od 26.10.2026: na Redmi mikrofon został
     // schowany od nocy, kiedy klucza jeszcze nie było, choć komputer dostał go kilka godzin później; Jacek: „rozpoznał moje pisanie,
     // ale nie gadanie”). W pamięci stoi chwila odmowy, a dawne „false” nic już nie chowa.
@@ -823,7 +825,7 @@
       mikB.setAttribute('aria-pressed', String(n));
       pole.placeholder = n ? 'Słucham…' : 'Zapytaj o auta…';
       if (glos.stan === 'start') stan('Włączam mikrofon…');
-      else if (glos.stan === 'nagrywa') stan('Słucham. Gdy skończysz, pytanie pójdzie samo.');
+      else if (glos.stan === 'nagrywa') stan(glos.czekaNaKlucz ? 'Słucham. Komputer jeszcze łączy rozpoznawanie mowy…' : 'Słucham. Gdy skończysz, pytanie pójdzie samo.');
       else if (!n && /^(Włączam|Słucham)/.test(stanL.textContent)) stan('');
       for (const b of lista.querySelectorAll('.czat-duzy-mik')) {
         b.classList.toggle('nagrywa', n);
@@ -839,39 +841,61 @@
       if (d && d.glos === false) { zapiszGlos(false); pokazMik(); }
       throw new Error(d && d.blad ? d.blad : ZDANIA.klucz);
     }
+    // Mikrofon słucha od stuknięcia (od 26.10.2026, Jacek: „działa, ale wolno … speed up bez poświęcania jakości”): klucz od komputera
+    // (około 2 s przez ntfy.sh) i połączenie z Soniox idą w tle, a kawałki dźwięku czekają w kolejce i lecą do Soniox zaraz po połączeniu,
+    // więc można mówić od razu i nic nie przepada (Soniox przyjmuje dźwięk szybciej niż na żywo; tak wysyła go mikrofon-zywy.mjs).
+    // Na iPhonie to samo robi Aplikacja.swift od powłoki 2 (natywny.wczesnie, window.KASIOMOBILE_POWLOKA); starsza powłoka nagrywa
+    // dopiero po połączeniu, jak dawniej. Gdy klucza nie ma po 3 s, pod polem stoi, że komputer jeszcze łączy rozpoznawanie mowy.
     async function glosStart() {
       if (glos.stan !== 'nic' || pracuje) return;
-      Object.assign(glos, { stan: 'start', gotowe: '', tym: '', wyslij: true });
+      Object.assign(glos, { stan: 'start', gotowe: '', tym: '', wyslij: true, maKlucz: false, czekaNaKlucz: false });
       pokazGlos();
-      let k;
-      try { k = await klucz(); } catch (e) { glosKoniec(e.message); return; }
-      if (glos.stan !== 'start') return;
+      const kluczTeraz = klucz();
+      kluczTeraz.catch(() => { /* błąd przychodzi niżej, przez await */ });
+      clearTimeout(glos.zegarKlucza);
+      glos.zegarKlucza = setTimeout(() => { if (glos.stan !== 'nic' && !glos.maKlucz) { glos.czekaNaKlucz = true; pokazGlos(); } }, 3000);
+      const jest = (k) => { glos.maKlucz = true; clearTimeout(glos.zegarKlucza); if (glos.czekaNaKlucz) { glos.czekaNaKlucz = false; pokazGlos(); } return k; };
       // iPhone: Aplikacja.swift nagrywa PCM 16 kHz mono i sama łączy się z Soniox; „nagrywa” i słowa przyjdą przez Czat.zGlosu.
-      if (natywny) { natywny.start(k, JSON.stringify(Object.assign({}, KONF_SONIOX, glos.konf || {}, { audio_format: 'pcm_s16le', sample_rate: 16000, num_channels: 1 }))); return; }
+      if (natywny) {
+        if (natywny.wczesnie && natywny.nagrywaj) natywny.nagrywaj();
+        let k;
+        try { k = jest(await kluczTeraz); } catch (e) { glosKoniec(e.message); return; }
+        if (glos.stan === 'nic') return;
+        natywny.start(k, JSON.stringify(Object.assign({}, KONF_SONIOX, glos.konf || {}, { audio_format: 'pcm_s16le', sample_rate: 16000, num_channels: 1 })));
+        return;
+      }
       // Ustawienia jak domyślne w Web SDK Soniox (MicrophoneSource): mono, 16 kHz, bez obróbki dźwięku w przeglądarce,
       // kawałki co 60 ms. Do 20.10.2026 z redukcją szumu i echa oraz kawałkami co 250 ms.
       try {
         glos.media = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       } catch (e) { glosKoniec(e && /NotAllowed|Security/.test(e.name) ? ZDANIA.mikrofon : ZDANIA.mikrofonBrak); return; }
-      if (glos.stan !== 'start') { glosSprzatnij(); return; }
-      const ws = new WebSocket(SONIOX, ['soniox-api-key', k]);
+      if (glos.stan === 'nic') { glosSprzatnij(); return; }
+      const typ = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
+      // Kawałki sprzed połączenia czekają tutaj; pusty kawałek (koniec dźwięku) idzie zawsze po nich.
+      const kolejka = [];
+      let ws = null, koniecDzwieku = false;
+      try {
+        const rec = new MediaRecorder(glos.media, typ ? { mimeType: typ } : undefined);
+        rec.ondataavailable = (e) => { if (!e.data || !e.data.size) return; if (ws && ws.readyState === 1) ws.send(e.data); else kolejka.push(e.data); };
+        rec.onstop = () => { if (ws && ws.readyState === 1) ws.send(''); else koniecDzwieku = true; };
+        glos.rec = rec;
+        rec.start(60);
+      } catch { glosKoniec(ZDANIA.mikrofonBrak); return; }
+      if (glos.stan === 'start') { glos.stan = 'nagrywa'; pokazGlos(); }
+      let k;
+      try { k = jest(await kluczTeraz); } catch (e) { glosKoniec(e.message); return; }
+      if (glos.stan === 'nic') return;
+      ws = new WebSocket(SONIOX, ['soniox-api-key', k]);
       glos.ws = ws;
       ws.onopen = () => {
         ws.send(JSON.stringify(Object.assign({}, KONF_SONIOX, glos.konf || {})));
-        const typ = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
-        try {
-          const rec = new MediaRecorder(glos.media, typ ? { mimeType: typ } : undefined);
-          glos.rec = rec;
-          rec.ondataavailable = (e) => { if (e.data && e.data.size && ws.readyState === 1) ws.send(e.data); };
-          rec.onstop = () => { if (ws.readyState === 1) ws.send(''); };
-          rec.start(60);
-        } catch { glosKoniec(ZDANIA.mikrofonBrak); return; }
-        glos.stan = 'nagrywa';
-        pokazGlos();
+        for (const c of kolejka.splice(0)) ws.send(c);
+        if (koniecDzwieku) ws.send('');
       };
-      ws.onmessage = (e) => zSoniox(e.data);
-      ws.onerror = () => glosKoniec(ZDANIA.soniox);
-      ws.onclose = () => glosKoniec();
+      // Połączenie po skończonym nagraniu (pytanie już poszło albo zaczęło się nowe) niczego już nie zmienia.
+      ws.onmessage = (e) => { if (glos.ws === ws) zSoniox(e.data); };
+      ws.onerror = () => { if (glos.ws === ws) glosKoniec(ZDANIA.soniox); };
+      ws.onclose = () => { if (glos.ws === ws) glosKoniec(); };
     }
     // Wiadomość od Soniox: z WebSocketu strony albo, na iPhonie, przekazana przez Aplikacja.swift.
     function zSoniox(tekst) {
@@ -899,7 +923,7 @@
       if (slowa) { clearTimeout(glos.chwila); glos.chwila = 0; }
       if (koniec && (glos.stan === 'nagrywa' || glos.stan === 'start')) {
         clearTimeout(glos.chwila);
-        glos.chwila = setTimeout(() => { glos.chwila = 0; if (glos.stan === 'nagrywa' || glos.stan === 'start') glosStop(true); }, CHWILA_MS);
+        glos.chwila = setTimeout(() => { glos.chwila = 0; if (glos.stan === 'nagrywa' || glos.stan === 'start') glosWyslijTeraz(); }, CHWILA_MS);
       }
       if (d.finished) glosKoniec();
     }
@@ -921,12 +945,29 @@
       glos.stan = 'konczy';
       glosSprzatnij(); // rec.stop → onstop wysyła pusty kawałek, Soniox kończy i zamyka połączenie
     }
+    // Koniec wypowiedzi (chwila ciszy po „<end>”, od 26.10.2026): pytanie idzie od razu, bez czekania na ostatnią odpowiedź Soniox,
+    // bo wszystko przed „<end>” jest już ostateczne. Mikrofon gaśnie, a Soniox dostaje pusty kawałek i kończy w tle; do strony już
+    // nic z niego nie wraca. Stuknięcie mikrofonu w trakcie (glosStop) dalej czeka na resztę tekstu, bo palec bywa szybszy od słów.
+    function glosWyslijTeraz() {
+      if (glos.stan === 'nic') return;
+      const ws = glos.ws;
+      Object.assign(glos, { stan: 'nic', ws: null });
+      clearTimeout(glos.zegar);
+      clearTimeout(glos.chwila);
+      clearTimeout(glos.zegarKlucza);
+      glos.chwila = 0;
+      if (natywny) natywny.stop(false); else glosSprzatnij();
+      if (ws) setTimeout(() => { try { if (ws.readyState <= 1) ws.close(); } catch { /* zamknięte */ } }, 3000);
+      pokazGlos();
+      if (glos.wyslij && pole.value.trim()) wyslij(pole.value);
+    }
     function glosKoniec(blad) {
       if (glos.stan === 'nic') return;
       const ws = glos.ws;
       Object.assign(glos, { stan: 'nic', ws: null });
       clearTimeout(glos.zegar);
       clearTimeout(glos.chwila);
+      clearTimeout(glos.zegarKlucza);
       glos.chwila = 0;
       if (natywny) natywny.stop(true);
       glosSprzatnij();

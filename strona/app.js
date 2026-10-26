@@ -1111,8 +1111,10 @@
     // nawigacji po tych czatach”). Na szerokim ekranie nawigacja stoi u góry, a rozmowa jest panelem z prawej.
     dol: () => { const d = $('.dol'); return innerWidth >= 760 || !d || !d.offsetHeight ? 0 : innerHeight - d.getBoundingClientRect().top; },
     naZmiane: (otwarty) => document.body.classList.toggle('czat-otwarty', otwarty),
+    // Od powłoki 2 (Aplikacja.swift, window.KASIOMOBILE_POWLOKA, od 26.10.2026) mikrofon słucha od stuknięcia („nagrywaj”), zanim przyjdzie klucz.
     glosNatywny: mostGlosu ? { start: (klucz, konfiguracja) => mostGlosu.postMessage({ co: 'start', klucz, konfiguracja }),
-      stop: (zaraz) => mostGlosu.postMessage({ co: 'stop', zaraz: Boolean(zaraz) }) } : null,
+      stop: (zaraz) => mostGlosu.postMessage({ co: 'stop', zaraz: Boolean(zaraz) }),
+      wczesnie: (Number(window.KASIOMOBILE_POWLOKA) || 1) >= 2, nagrywaj: () => mostGlosu.postMessage({ co: 'nagrywaj' }) } : null,
     zakladka: () => { const k = klucz(widok); return k === 'atlas' ? 'modele' : k; },
     // Ręce asystenta (od 26.10.2026 także porównanie, rata w Finansach, szukanie w Ofertach i rozdział poradnika; Jacek: „On musi też być
     // w stanie obsługiwać tę aplikację. Mieć ręce i nogi”).

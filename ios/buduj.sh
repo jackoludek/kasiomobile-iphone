@@ -10,6 +10,7 @@ BUD="$PWD/budowa"
 rm -rf "$WYNIK" "$BUD"
 mkdir -p "$WYNIK" "$BUD"
 NUMER="$(date -u +%y%m%d%H%M)"
+ZBUDOWANO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 test -s strona/kanal.js || { echo "Brak strona/kanal.js (robi go zbuduj-na-githubie.ps1)"; exit 1; }
 xcodebuild -version | tee "$WYNIK/xcode.txt"
 for PLATFORMA in iphoneos iphonesimulator; do
@@ -19,6 +20,19 @@ for PLATFORMA in iphoneos iphonesimulator; do
   echo "== $PLATFORMA"
   xcrun -sdk "$PLATFORMA" swiftc -target "$CEL" -O -parse-as-library -module-name Auta ios/Zrodla/*.swift -o "$APP/Auta"
   cp -R strona "$APP/www"
+  # wersja.json (od 26.10.2026): SHA-256 każdego pliku strony (bez kanal.js) i chwila budowy. Aplikacja porównuje go z wersja.json wyglądu
+  # z sieci (wyslij-do-sieci.ps1, folder aplikacja/), a skrót liczy się tak samo: SHA-256 linii „nazwa:sha\n” po nazwach w kolejności bajtów.
+  python3 - "$APP/www" "$ZBUDOWANO" <<'PY'
+import hashlib, json, os, sys
+k, z = sys.argv[1], sys.argv[2]
+pliki = {}
+for n in sorted(os.listdir(k)):
+    p = os.path.join(k, n)
+    if os.path.isfile(p) and n not in ("kanal.js", "wersja.json") and not n.startswith("."):
+        pliki[n] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+skrot = hashlib.sha256("".join("%s:%s\n" % (n, pliki[n]) for n in sorted(pliki)).encode("utf-8")).hexdigest()
+json.dump({"zbudowano": z, "skrot": skrot, "minPowloka": 2, "pliki": pliki}, open(os.path.join(k, "wersja.json"), "w"), ensure_ascii=False, indent=1)
+PY
   xcrun actool ios/Assets.xcassets --compile "$APP" --platform "$PLATFORMA" --minimum-deployment-target 16.0 \
     --app-icon AppIcon --output-partial-info-plist "$BUD/$PLATFORMA/ikona.plist" \
     --target-device iphone --output-format human-readable-text
