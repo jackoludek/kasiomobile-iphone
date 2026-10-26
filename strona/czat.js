@@ -795,7 +795,12 @@
     // ---------------------------------------------------------------- mikrofon (Soniox)
     const natywny = o.glosNatywny || null;
     const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true };
-    const glos = { stan: 'nic', ws: null, rec: null, media: null, gotowe: '', tym: '', wyslij: true, zegar: 0 };
+    // Soniox daje „<end>” już na pauzie krótszej niż sekunda między zdaniami (26.10.2026, rozmowa „Rozmowa z Opusem” na prawdziwym Soniox,
+    // przy każdym ustawieniu wykrywania końca), więc po „<end>” czat czeka jeszcze CHWILA_MS. Nowe słowa w tym czasie znaczą, że pytanie
+    // trwa: czekanie znika i zaczyna się od nowa przy następnym „<end>”. Pytanie idzie więc około 2 s po ostatnim słowie, a mikrofon
+    // stuknięty w trakcie wysyła od razu. To samo na iPhonie, bo słowa ze Swifta idą przez zSoniox.
+    const CHWILA_MS = 1500;
+    const glos = { stan: 'nic', ws: null, rec: null, media: null, gotowe: '', tym: '', wyslij: true, zegar: 0, chwila: 0 };
     // „glos: false” (komputer nie da klucza) chowa mikrofon na 20 minut, a nie na zawsze (od 26.10.2026: na Redmi mikrofon został
     // schowany od nocy, kiedy klucza jeszcze nie było, choć komputer dostał go kilka godzin później; Jacek: „rozpoznał moje pisanie,
     // ale nie gadanie”). W pamięci stoi chwila odmowy, a dawne „false” nic już nie chowa.
@@ -874,17 +879,25 @@
         glosKoniec(ZDANIA.soniox);
         return;
       }
-      let tym = '', koniec = false;
+      let tym = '', koniec = false, slowa = false;
       for (const t of d.tokens || []) {
-        if (t.text === '<end>') koniec = true;
-        else if (t.is_final) glos.gotowe += t.text;
-        else tym += t.text;
+        const s = String(t.text || '');
+        if (s === '<end>') koniec = true;
+        else if (/^<[a-z]+>$/.test(s)) continue;
+        else {
+          if (s.trim()) slowa = true;
+          if (t.is_final) glos.gotowe += s; else tym += s;
+        }
       }
       glos.tym = tym;
       pole.value = (glos.gotowe + glos.tym).replace(/\s+/g, ' ').trim();
       rosnij();
       przyciski();
-      if (koniec) glosStop(true);
+      if (slowa) { clearTimeout(glos.chwila); glos.chwila = 0; }
+      if (koniec && (glos.stan === 'nagrywa' || glos.stan === 'start')) {
+        clearTimeout(glos.chwila);
+        glos.chwila = setTimeout(() => { glos.chwila = 0; if (glos.stan === 'nagrywa' || glos.stan === 'start') glosStop(true); }, CHWILA_MS);
+      }
       if (d.finished) glosKoniec();
     }
     function glosSprzatnij() {
@@ -895,6 +908,8 @@
     }
     function glosStop(wyslijPo) {
       if (glos.stan === 'nic') return;
+      clearTimeout(glos.chwila);
+      glos.chwila = 0;
       glos.wyslij = wyslijPo !== false;
       clearTimeout(glos.zegar);
       glos.zegar = setTimeout(() => glosKoniec(), 4000);
@@ -908,6 +923,8 @@
       const ws = glos.ws;
       Object.assign(glos, { stan: 'nic', ws: null });
       clearTimeout(glos.zegar);
+      clearTimeout(glos.chwila);
+      glos.chwila = 0;
       if (natywny) natywny.stop(true);
       glosSprzatnij();
       if (ws && ws.readyState <= 1) { try { ws.close(); } catch { /* zamknięte */ } }
