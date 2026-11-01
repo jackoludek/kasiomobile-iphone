@@ -2,7 +2,7 @@
    Kolory to role w jednym miejscu, motyw za systemem, ciemny to czerń. Kontrast par liczy sprawdz-kontrast-czatu.js.
    Cel dotyku ma 48 px: widoczny kształt jest mniejszy, a resztę celu daje przezroczysta obwódka albo pole wokół kółka
    (reguła przyciski-zawsze-jak-przyciski). Krój Inter bierze ze strony, w której stoi. */
-.czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+.czat, .czat-zaslona, .czat-dymek, .czat-otworz, .czat-wskaznik, .czat-wskaz-ramka {
   --cz-tlo: #ffffff; --cz-pod: #f2f2f7; --cz-tekst: #1d1d1f; --cz-tekst2: #6e6e73; --cz-ramka: #d2d2d7; --cz-wlosek: rgba(0, 0, 0, .12);
   --cz-akcent: #0071e3; --cz-akcent-tekst: #0066cc; --cz-ja: #deecfb; --cz-przycisk: #0071e3; --cz-na-przycisku: #ffffff;
   --cz-szary: #e8e8ed; --cz-czerwony: #d70015; --cz-cien: rgba(0, 0, 0, .12); --cz-blysk: rgba(255, 255, 255, .6);
@@ -17,7 +17,7 @@
   --cz-na-wybranej: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
-  .czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+  .czat, .czat-zaslona, .czat-dymek, .czat-otworz, .czat-wskaznik, .czat-wskaz-ramka {
     --cz-tlo: #000000; --cz-pod: #1c1c1e; --cz-tekst: #ffffff; --cz-tekst2: #c0bfbc; --cz-ramka: #48484a; --cz-wlosek: rgba(255, 255, 255, .16);
     --cz-akcent: #409cff; --cz-akcent-tekst: #78bbff; --cz-ja: #0f253d; --cz-przycisk: #0a84ff; --cz-na-przycisku: #ffffff;
     --cz-szary: #2c2c2e; --cz-czerwony: #ff453a; --cz-cien: rgba(0, 0, 0, 0); --cz-blysk: rgba(255, 255, 255, 0);
@@ -60,7 +60,7 @@
 .czat-gora { flex: none; position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 52px; padding: 4px 8px 0 16px; }
 /* Historia i Nowa rozmowa (od 26.10.2026): przyciski z napisem w szkle z 45° światłem, co 8 px, cel 48 px. Historia włączona stoi
    w akcencie z napisem na barwie (biały 4,7:1, w ciemnym czarny 5,8:1). Bez rozmowy Nowa rozmowa jest przygaszona. */
-.czat-gora-lewo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
 .czat-pigulka { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 40px; margin: 4px 0; padding: 0 16px 0 12px; border: 0; border-radius: 20px;
   background-color: var(--cz-szary); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); color: var(--cz-tekst);
   font: inherit; font-size: 15px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -111,6 +111,11 @@
 .czat-otworz[aria-expanded="true"]::before { background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); box-shadow: var(--cz-c3d-b); }
 .czat-zamknij { color: var(--cz-tekst2); }
 .czat-zamknij::before { inset: 8px; }
+/* Krzyżyk jak u Apple (28.10.2026, Jacek: „It doesn't look like a button … make it look like Apple”): płaskie szare kółko z szarym znakiem, bez cienia i blasku.
+   Znak #6e6e73 ma na kółku 4,2:1, w ciemnym #aeaeb2 6,8:1 (grafika: próg 3:1). */
+.czat-zamknij { color: #6e6e73; }
+.czat-zamknij::before { background-color: rgba(120, 120, 128, .16); background-image: none; box-shadow: none; }
+@media (prefers-color-scheme: dark) { .czat-zamknij { color: #aeaeb2; } .czat-zamknij::before { background-color: rgba(120, 120, 128, .32); } }
 .czat-wyslij { color: var(--cz-na-przycisku); }
 .czat-wyslij::before { background-color: var(--cz-przycisk); background-image: var(--cz-lico-b); box-shadow: var(--cz-c3d-b); }
 .czat-wyslij:disabled { color: var(--cz-tekst2); cursor: default; }
@@ -176,45 +181,25 @@
 }
 .czat-pusto { margin: auto 0; display: grid; justify-items: center; gap: 24px; padding: 16px 0 24px; text-align: center; color: var(--cz-tekst2); }
 .czat-pusto > p { max-width: 22em; margin: 0; }
-/* Duży mikrofon na pustej rozmowie (od 26.10.2026, Jacek: „Brak dużego mikrofonu”), od tego samego dnia oko w stylu HAL 9000
-   z „2001: Odysei kosmicznej” (Jacek: „ever so slightly … reminiscent of HAL”): czarna soczewka z czerwonym środkiem w srebrnym
-   pierścieniu, blask z lewego górnego rogu pod 45° i cień w prawo w dół jak na przyciskach. Gdy słucha, środek jaśnieje i oddycha,
-   a poświata wychodzi na pierścień: to sygnał stanu, więc zostaje także przy ograniczonym ruchu. Pod okiem podpis mówi, co robi. */
-.czat-duzy-mik { display: grid; justify-items: center; gap: 10px; margin: 0; padding: 0; border: 0; background: none; color: var(--cz-tekst);
-  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Oko HAL 9000 z „2001: Odysei kosmicznej” (od 26.10.2026, Jacek: „ever so slightly … reminiscent of HAL”): czarna soczewka z czerwonym środkiem
+   w srebrnym pierścieniu, blask z lewego górnego rogu pod 45° i cień w prawo w dół jak na przyciskach. Żyje w trybie HAL (przytrzymanie logo,
+   niżej) i w małym mikrofonie przy polu pytania, gdy nagrywa. Dużego oka na pustej rozmowie już nie ma (Jacek, 26.10.2026 wieczorem: „fajna,
+   ale trochę przesadzona”). */
 .czat-oko { position: relative; display: block; width: 84px; height: 84px; border-radius: 50%;
   background: linear-gradient(135deg, #fdfdfd, #d1d1d6 34%, #8e8e93 64%, #e5e5ea);
-  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 1px 1px 2px rgba(0, 0, 0, .2), 3px 3px 10px rgba(0, 0, 0, .16), 6px 6px 20px rgba(0, 0, 0, .1);
-  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1); }
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 1px 1px 2px rgba(0, 0, 0, .2), 3px 3px 10px rgba(0, 0, 0, .16), 6px 6px 20px rgba(0, 0, 0, .1); }
 .czat-oko::after { content: ""; position: absolute; inset: 7px; border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, .9) 0 2px, rgba(255, 255, 255, .25) 4px, rgba(255, 255, 255, 0) 8px),
     radial-gradient(circle, #ffd88a 0 3%, #ff5428 7%, #e10a0a 15%, #8c0000 28%, #2b0202 43%, #0a0a0a 55%, #050505);
   box-shadow: inset 0 0 0 2px #111111, inset 2px 2px 4px rgba(255, 255, 255, .12), inset -2px -2px 6px rgba(0, 0, 0, .6); }
-.czat-duzy-mik:active .czat-oko { transform: scale(1.03); transition: transform 80ms ease; }
-.czat-duzy-mik.nagrywa .czat-oko::after { animation: czat-hal 2.2s ease-in-out infinite; }
 @keyframes czat-hal {
   0%, 100% { filter: brightness(1.05) saturate(1.1); box-shadow: inset 0 0 0 2px #111111, 0 0 10px 2px rgba(255, 40, 20, .35); }
   50% { filter: brightness(1.45) saturate(1.3); box-shadow: inset 0 0 0 2px #111111, 0 0 26px 9px rgba(255, 40, 20, .6); } }
-.czat-duzy-mik:focus-visible { outline: none; }
-.czat-duzy-mik:focus-visible .czat-oko { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
-/* Podpowiedzi (od 26.10.2026, Jacek: pytania „za ciasno, bez koloru i bez oddechu”, „nikt nie wie, że da się je stuknąć”): przyciski
-   z głębią w pastelach zakładek, których dotyczą, co 12 px, na całą szerokość. Napis #1d1d1f (w ciemnym biały) ma na nich od 9:1. */
-.czat-podpowiedzi { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; max-width: 480px; }
-.czat .czat-podpowiedz { justify-content: center; min-height: 52px; margin: 0; padding: 12px 20px; border: 0; border-radius: 26px; font-size: 16px; font-weight: 600;
-  color: #1d1d1f; background-color: var(--cz-pastel, var(--cz-pod)); background-image: var(--cz-lico);
-  box-shadow: var(--cz-c3d); }
-.czat-podpowiedz[data-z="katalog"] { --cz-pastel: #ffeed6; }
-.czat-podpowiedz[data-z="modele"] { --cz-pastel: #d6eaff; }
-.czat-podpowiedz[data-z="kredyt"] { --cz-pastel: #dff6e4; }
-.czat-podpowiedz[data-z="poradnik"] { --cz-pastel: #f2e3fa; }
-
-@media (prefers-color-scheme: dark) {
-  .czat .czat-podpowiedz { color: #ffffff; }
-  .czat-podpowiedz[data-z="katalog"] { --cz-pastel: #5c4118; }
-  .czat-podpowiedz[data-z="modele"] { --cz-pastel: #17395d; }
-  .czat-podpowiedz[data-z="kredyt"] { --cz-pastel: #224f2e; }
-  .czat-podpowiedz[data-z="poradnik"] { --cz-pastel: #4a2d59; }
-}
+/* Podpowiedzi (od 26.10.2026 wieczorem, Jacek: pastele „jak z jarmarku”, „co by Apple zrobił? … szarawe”, „więcej powietrza”): jedna spokojna
+   barwa, szare szkło z 45° światłem jak inne przyciski, napis w kolorze tekstu (13:1 w jasnym, 12:1 w ciemnym), 56 px wysokości, 16 px odstępu. */
+.czat-podpowiedzi { display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: 100%; max-width: 480px; }
+.czat .czat-podpowiedz { justify-content: center; min-height: 56px; margin: 0; padding: 14px 24px; border: 0; border-radius: 28px; font-size: 16px; font-weight: 500; line-height: 1.4;
+  color: var(--cz-tekst); background-color: var(--cz-szary); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); }
 
 /* Pole pytania na dole: tekst, mikrofon (gdy jest) i wysyłanie. Od dolnej krawędzi stoi jak pasek zakładek, czyli tak daleko
    jak logo od górnej (od 24.10.2026); przy klawiaturze i w panelu na komputerze 8 px. */
@@ -258,13 +243,11 @@
 .czat-wiersz[data-kierunek="prawo"] .czat-pod-p, .czat-wiersz[data-kierunek="lewo"] .czat-pod-l { display: none; }
 .czat-pod svg { flex: none; transition: transform 160ms cubic-bezier(.3, 1.7, .5, 1); }
 .czat-wiersz.gotowe .czat-pod svg { transform: scale(1.2); }
-/* Archiwum i kosz otwierają pigułki pod Historią (każda pigułka na pół szerokości, sama na całą), a w nich strzałka do Historii i nazwa. */
+/* Schowek (dawne Archiwum i Kosz) to jedna pigułka pod listą rozmów, na całą szerokość; w jego widoku są dwie sekcje, Zachowane i Kosz. */
 .czat-schowki { display: flex; gap: 8px; margin-top: 4px; }
 .czat-schowek { flex: 1 1 0; justify-content: center; min-width: 0; }
 .czat-ile { min-width: 24px; height: 24px; margin-left: 2px; padding: 0 7px; border-radius: 12px; background: var(--cz-tlo);
   box-shadow: inset 0 0 0 1px var(--cz-wlosek); font-size: 13px; line-height: 24px; text-align: center; }
-.czat-naglowek-listy { display: flex; align-items: center; gap: 12px; }
-.czat-gdzie { margin: 0; color: var(--cz-tekst); font-size: 17px; font-weight: 600; line-height: 1.3; }
 /* Menu rozmowy (przytrzymanie, prawy klik, klawisz menu): karta z ramką, pozycje to pigułki, kosz z czerwonym znakiem (4,4:1, grafika). */
 .czat-menu { position: absolute; z-index: 5; display: grid; gap: 8px; min-width: 220px; padding: 8px; border-radius: 22px;
   background: var(--cz-tlo); box-shadow: 0 0 0 1px var(--cz-wlosek), 0 8px 28px var(--cz-cien); }
@@ -327,4 +310,310 @@
   40% { opacity: 1; background-color: var(--c-tlo); box-shadow: var(--c-cien); }
   70% { opacity: 1; background-color: var(--c-tlo-jasne); box-shadow: var(--c-cien-lekki); }
   100% { opacity: 0; background-color: transparent; box-shadow: var(--c-cien-zero); }
+}
+
+/* ---- Porządki w rozmowie z wieczora 26.10.2026 (Jacek: „nawigacja za wysoko … podążanie za gridami”, „więcej powietrza”, kosz do opróżnienia,
+   odpowiedź wychodząca poza ekran) i tryb HAL ---- */
+.czat { --cz-niebezp: #b3000f; }
+@media (prefers-color-scheme: dark) { .czat { --cz-niebezp: #ff6961; } }
+/* Arkusz nad nawigacją-chmurką ma 8 px odstępu od niej i zaokrąglone wszystkie rogi. */
+.czat-arkusz.nad-nawigacja { border-radius: 16px; }
+.czat-pusto { gap: 32px; }
+
+/* Pasek u góry (od 28.10.2026; Jacek o pigułkach Rozmowy i Nowa rozmowa nad polem pytania: „Think Different, think what would Apple do!!!”), jak w aplikacjach
+   czatu na iPhonie i w pasku nawigacji Apple, na siatce 12 kolumn: Rozmowy w kolumnach 1–2 (w listach w tym samym miejscu strzałka wstecz), tytuł w 3–8 (jedna linia
+   z wielokropkiem, pusty na pustej rozmowie), Nowa rozmowa w 9–10, krzyżyk w 11–12. Przyciski to szklane koła 40 px w polu 48 px na środku swoich dwóch kolumn,
+   jak każda .czat-ikonka, i nigdy się nie przesuwają; przygaszony stoi w tym samym miejscu. Tytuł ma 15 px i 600 jak nagłówek w iOS (tekst 16:1 w jasnym, 21:1
+   w ciemnym), znaki na kółkach 14:1 i 15:1. Do 28.10.2026 Rozmowy i Nowa rozmowa stały jako pigułki po sześć kolumn tuż nad polem pytania (od 27.10.2026,
+   „Pod kciuk”), a wcześniej u góry, 5 + 5 + 2 kolumny. */
+.czat-gora { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--km-rynna, 8px); align-items: center; min-height: 56px;
+  padding: 8px calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 16px); }
+.czat-gora .czat-zamknij { grid-column: 11 / span 2; justify-self: center; }
+.czat-gora > .czat-historia { grid-column: 1 / span 2; justify-self: center; }
+.czat-gora > .czat-nowa { grid-column: 9 / span 2; justify-self: center; }
+.czat-gora > .czat-historia, .czat-gora > .czat-nowa, .czat-gora > .czat-zamknij, .czat-gora > .czat-tytul { grid-row: 1; }
+.czat-gora > .czat-ikonka:disabled { opacity: .45; cursor: default; }
+.czat-tytul { grid-column: 3 / span 6; min-width: 0; margin: 0; overflow: hidden; color: var(--cz-tekst); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.3;
+  letter-spacing: 0; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+/* „Cofnij” stoi na środku, 12 px nad polem pytania, a w listach 12 px nad dołem listy (czat.js, ustawCofnij, wpisuje bottom), więc nigdy nie zasłania pola. Dół listy
+   zostawia mu miejsce (48 px pigułki, 12 px odstępu i 16 px oddechu), żeby nie zasłaniał ostatniej rozmowy ani przycisków Archiwum i Kosz (zrzut z 27.10.2026:
+   pigułka przykrywała napis „Kosz”). */
+.czat > .czat-cofnij-pole { bottom: 160px; }
+.czat-lista { transition: padding-bottom 200ms cubic-bezier(.2, 0, 0, 1); }
+.czat.z-cofnij .czat-lista { padding-bottom: 76px; }
+@media (prefers-reduced-motion: reduce) { .czat-lista { transition: none; } }
+.czat-pole { box-shadow: none; }
+
+/* Sekcje Schowka (od 27.10.2026): mała nazwa po lewej, a przy Koszu „Opróżnij” w czterech ostatnich kolumnach (napis czerwony, 5,9:1 w jasnym i 4,9:1 w ciemnym).
+   Nazwa widoku „Archiwum i kosz” stoi od 28.10.2026 w tytule paska u góry, a powrót do Rozmów to strzałka wstecz w miejscu przycisku Rozmowy. */
+.czat-sekcja { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--km-rynna, 8px); align-items: center; min-height: 40px; margin-top: 8px; }
+.czat-sekcja-nazwa { grid-column: 1 / span 6; margin: 0; color: var(--cz-tekst2); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.czat-sekcja .czat-oproznij { grid-column: 9 / span 4; width: 100%; justify-content: center; padding: 0 8px; color: var(--cz-niebezp); }
+.czat-oproznij > svg { display: none; }
+
+/* Odnośnik pod odpowiedzią nigdy nie wychodzi poza ekran: napis łamie się gdziekolwiek i ma najwyżej dwie linie. */
+.czat-akcja > span { min-width: 0; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+/* Tryb HAL (od 26.10.2026 wieczorem; Jacek: „przytrzymać przez pół sekundy … tylko oko tego Hala. Podpis Hal jakiś tam, delikatny … głosowo,
+   slightly animacyjnie”): cały ekran, białe tło (w ciemnym czarne), oko 176 px na środku, pod nim cichy podpis i napis tego, co HAL mówi.
+   Oko mówi o stanie: czeka (oddycha), słucha (pulsuje), myśli (migocze), mówi (bije w rytmie mowy). Stan zostaje także przy ograniczonym ruchu. */
+.czat.czat-hal { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: auto 1fr; padding: calc(var(--km-gora, env(safe-area-inset-top, 0px)) + 10px) 0 env(safe-area-inset-bottom, 0px);
+  opacity: 0; transition: opacity 320ms ease; }
+.czat.czat-hal.widac { opacity: 1; }
+.czat-hal-gora { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--km-rynna, 8px); align-items: center; min-height: 60px;
+  padding: 12px calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 16px); }
+.czat-hal-gora .czat-zamknij { grid-column: 11 / span 2; justify-self: center; }
+.czat-hal-srodek { display: grid; align-content: center; justify-items: center; gap: 32px; padding: 0 24px 72px; text-align: center; }
+.czat-hal-oko { position: relative; display: block; width: 176px; height: 176px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1); }
+.czat-hal-oko:active { transform: scale(1.03); transition: transform 80ms ease; }
+.czat-hal-oko:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: 8px; }
+.czat-hal-oko .czat-oko { width: 176px; height: 176px;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 2px 2px 4px rgba(0, 0, 0, .2), 6px 6px 20px rgba(0, 0, 0, .18), 12px 12px 40px rgba(0, 0, 0, .12); }
+.czat-hal-oko .czat-oko::after { inset: 15px;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, .9) 0 4px, rgba(255, 255, 255, .25) 9px, rgba(255, 255, 255, 0) 16px),
+    radial-gradient(circle, #ffd88a 0 3%, #ff5428 7%, #e10a0a 15%, #8c0000 28%, #2b0202 43%, #0a0a0a 55%, #050505);
+  box-shadow: inset 0 0 0 3px #111111, inset 3px 3px 8px rgba(255, 255, 255, .12), inset -4px -4px 12px rgba(0, 0, 0, .6); }
+.czat-hal[data-stan="czeka"] .czat-oko::after { animation: czat-hal-oddech 5s ease-in-out infinite; }
+.czat-hal[data-stan="slucha"] .czat-oko::after { animation: czat-hal 2.2s ease-in-out infinite; }
+.czat-hal[data-stan="mysli"] .czat-oko::after { animation: czat-hal-mysli 1.3s ease-in-out infinite; }
+.czat-hal[data-stan="mowi"] .czat-oko::after { animation: czat-hal-mowi .9s ease-in-out infinite; }
+@keyframes czat-hal-oddech { 0%, 100% { filter: brightness(.96); } 50% { filter: brightness(1.14); } }
+@keyframes czat-hal-mysli { 0%, 100% { filter: brightness(.7) saturate(.9); } 40% { filter: brightness(1.35) saturate(1.2); } 70% { filter: brightness(.85); } }
+@keyframes czat-hal-mowi {
+  0%, 100% { filter: brightness(1); box-shadow: inset 0 0 0 3px #111111, 0 0 16px 3px rgba(255, 40, 20, .35); }
+  50% { filter: brightness(1.5) saturate(1.3); box-shadow: inset 0 0 0 3px #111111, 0 0 38px 14px rgba(255, 40, 20, .6); } }
+.czat-hal-podpis { margin: 0; color: var(--cz-tekst2); font-size: 13px; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; }
+.czat-hal-napis { min-height: 4.5em; max-width: 22em; margin: 0; color: var(--cz-tekst2); font-size: 16px; line-height: 1.5; }
+/* Pytania na stałe (od 27.10.2026; Jacek: „możliwość edytowania i ustawienia sobie własnych pytań na stałe, a jeden klik za pytanie”, „przesuwalność”).
+   Zwykły widok: lista pytań jak dotąd (jedno stuknięcie wysyła) i cicha pigułka „Edytuj pytania”. Edycja: wiersze z uchwytem (przesuń), tekstem (stuknij, żeby zmienić)
+   i krzyżykiem (usuń), pod nimi „Dodaj pytanie” i „Gotowe” po sześć kolumn siatki. Nowe pytanie wpisuje się albo dyktuje w zwykłym polu pytania. */
+.czat-pyt-edytuj { margin: 0; }
+.czat-pyt-wiersz { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; min-height: 56px; border: 1px solid var(--cz-ramka); border-radius: 28px;
+  background-color: var(--cz-pod); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); }
+.czat-pyt-wiersz.edytowany { border-color: var(--cz-akcent); box-shadow: 0 0 0 2px var(--cz-akcent), var(--cz-c3d); }
+.czat-pyt-wiersz.przeciagany { position: relative; z-index: 2; border-color: var(--cz-akcent); box-shadow: 0 0 0 2px var(--cz-akcent), 0 8px 20px rgba(0, 0, 0, .18); transform: scale(1.02); }
+.czat-pyt-uchwyt, .czat-pyt-usun { display: grid; place-items: center; width: 48px; height: 48px; margin: 0; padding: 0; border: 0; border-radius: 24px; background: none; color: var(--cz-tekst2); cursor: pointer; }
+.czat-pyt-uchwyt { cursor: grab; touch-action: none; }
+.czat-pyt-wiersz.przeciagany .czat-pyt-uchwyt { cursor: grabbing; }
+.czat-pyt-uchwyt:focus-visible, .czat-pyt-usun:focus-visible, .czat-pyt-tekst:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: -2px; }
+.czat-pyt-tekst { min-width: 0; margin: 0; padding: 12px 4px; border: 0; border-radius: 12px; background: none; color: var(--cz-tekst); font: inherit; font-weight: 500; line-height: 1.35; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.czat-pyt-akcje { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; width: 100%; max-width: 480px; }
+.czat-pyt-akcje > .czat-pigulka { width: 100%; justify-content: center; padding: 0 8px; }
+/* ---- Asystent na cały ekran, pływający przycisk i małe okno (od 27.10.2026 wieczorem) ----
+   Jacek: asystent ma „inny znaczek”, być „transparentny”, dać się przenosić („żeby był pod ręką”), a rozmowa ma być „na cały ekran”, z nawigacją zsuniętą do
+   „małej belki na dole” i powrotem „swipe up”. Przytrzymanie przycisku otwiera „instant panel”: małe, szklane okno z pytaniem o to, co widać na ekranie. */
+.czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+  --cz-iskra: #b4401f; --cz-matowe: rgba(255, 255, 255, .66); --cz-matowe-ramka: rgba(0, 0, 0, .16);
+  --cz-matowe-cien: 1px 2px 4px rgba(0, 0, 0, .14), 4px 8px 20px rgba(0, 0, 0, .16);
+}
+@media (prefers-color-scheme: dark) {
+  .czat, .czat-zaslona, .czat-dymek, .czat-otworz {
+    --cz-iskra: #ff9a76; --cz-matowe: rgba(28, 28, 30, .66); --cz-matowe-ramka: rgba(255, 255, 255, .24); --cz-matowe-cien: 0 6px 20px rgba(0, 0, 0, .55);
+  }
+}
+/* Pływający przycisk (telefon): matowe szkło z ramką i cieniem, iskra w kolorze terakoty (5,7:1 na bieli, 7,8:1 w ciemnym). Kółko ma tyle, co dwie skrajne kolumny
+   siatki strony (48–56 px, całe piksele; app.js liczy --ai-d i rozmiar iskry --ai-s), a cel dotyku jest równy kółku. Położenie to przesunięcie, które wpisuje app.js. */
+@media (max-width: 759px) {
+  .czat-ikonka.czat-plywak { position: fixed; z-index: 44; left: 0; top: 0; width: var(--ai-d, 56px); height: var(--ai-d, 56px); margin: 0; color: var(--cz-iskra);
+    touch-action: none; will-change: transform; transition: transform 280ms cubic-bezier(.2, 0, 0, 1), opacity 200ms ease, visibility 0s linear 0s; }
+  .czat-plywak.ciagniety, .czat-plywak.bez-ruchu, .czat-plywak.leci { transition: opacity 200ms ease; }
+  .czat-ikonka.czat-plywak::before { inset: 0; background-color: var(--cz-matowe); background-image: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 54%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.7); backdrop-filter: blur(18px) saturate(1.7);
+    box-shadow: 0 0 0 .5px var(--cz-matowe-ramka), inset 1px 1px 0 rgba(255, 255, 255, .7), inset -1px -1px 0 rgba(0, 0, 0, .08), var(--cz-matowe-cien); }
+  .czat-plywak > svg { width: var(--ai-s, calc(var(--ai-d, 56px) * .6)); height: var(--ai-s, calc(var(--ai-d, 56px) * .6)); stroke-width: 2.8; transition: transform 120ms ease; }
+  .czat-plywak:not(:disabled):active::before, .czat-plywak.trzyma::before { transform: scale(1.1); }
+  .czat-plywak.ciagniety::before { transform: scale(1.12); box-shadow: 0 0 0 .5px var(--cz-matowe-ramka), inset 1px 1px 0 rgba(255, 255, 255, .7), inset -1px -1px 0 rgba(0, 0, 0, .08), 3px 6px 14px rgba(0, 0, 0, .2), 10px 18px 36px rgba(0, 0, 0, .22); }
+  .czat-plywak.trzyma::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; box-shadow: 0 0 0 2.5px var(--cz-akcent); pointer-events: none; animation: czat-trzyma 450ms ease-out forwards; }
+  .czat-plywak:focus-visible::before { box-shadow: 0 0 0 2px var(--cz-tlo), 0 0 0 4px var(--cz-akcent); }
+  body.czat-otwarty .czat-plywak { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 200ms ease, visibility 0s linear 200ms; }
+}
+@media (prefers-color-scheme: dark) {
+  .czat-ikonka.czat-plywak::before { background-image: linear-gradient(135deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 54%);
+    box-shadow: 0 0 0 .5px var(--cz-matowe-ramka), inset 1px 1px 0 rgba(255, 255, 255, .2), inset -1px -1px 0 rgba(0, 0, 0, .4), var(--cz-matowe-cien); }
+}
+@keyframes czat-trzyma { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+
+/* Rozmowa na cały ekran (telefon): od górnej do dolnej krawędzi, bez zaokrągleń. Pod polem pytania stoi belka, do której zsunęła się nawigacja aplikacji (styl.css,
+   „Czat na cały ekran”): przesunięcie jej w górę albo stuknięcie zamyka czat i przywraca nawigację. U góry zostaje sam krzyżyk. */
+.czat-belka { display: none; }
+@media (max-width: 759px) {
+  .czat-arkusz { top: var(--czat-y, 0px); height: var(--czat-h, 100vh); border-radius: 0; box-shadow: none; transform: translateY(100%); }
+  .czat-arkusz.widac { transform: none; }
+  .czat-arkusz .czat-uchwyt { display: none; }
+  .czat-arkusz .czat-gora { min-height: calc(56px + var(--km-gora, 0px)); padding-top: calc(var(--km-gora, env(safe-area-inset-top, 0px)) + 8px); }
+  .czat-arkusz .czat-pole { padding-bottom: 8px; }
+  .czat-arkusz .czat-belka { position: relative; flex: none; display: grid; place-items: center; height: calc(32px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--cz-tlo); touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .czat-belka::before { content: ""; position: absolute; inset: -8px 0 0; }
+  .czat-belka-kreska { width: 44px; height: 5px; border-radius: 3px; background: var(--cz-tekst2); opacity: .85; transition: width 160ms ease, opacity 160ms ease; }
+  .czat-belka:active .czat-belka-kreska, .czat-belka.ciagnie .czat-belka-kreska { width: 68px; opacity: 1; }
+  .czat-belka:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: -6px; border-radius: 16px; }
+  .czat.klawiatura .czat-belka { display: none; }
+}
+/* Pytania na stałe na pełnym ekranie (od 27.10.2026 wieczorem; Jacek: cztery pytania „porządnie rozsunięte … not close enough to decrease readability, yet not far enough to feel
+   lonely”, jedna rodzina): 24 px między pigułkami, nad nimi iskra w szklanym medalionie. Pytanie może mieć do 600 znaków, na pigułce widać dwie linie, a przytrzymanie otwiera je do zmiany. */
+.czat .czat-podpowiedzi { gap: 24px; }
+.czat-iskra { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; color: var(--cz-iskra);
+  background-color: var(--cz-szary); background-image: var(--cz-lico); box-shadow: var(--cz-c3d); }
+/* Na niskim ekranie (do 800 px) kółko z iskrą ma 56 px, żeby cztery pytania mieściły się bez przewijania, a odstępy zostają. */
+@media (max-height: 800px) { .czat-pusto { gap: 24px; } .czat-iskra { width: 56px; height: 56px; } .czat-iskra > svg { width: 36px; height: 36px; } }
+.czat-podp-tekst { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-width: 0; overflow: hidden; overflow-wrap: anywhere; }
+.czat .czat-podpowiedz { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.czat-pyt-tekst { text-align: left; }
+.czat.edytuje .czat-tekst { max-height: 36vh; }
+/* Przy zmianie pytań na stałe Rozmowy w pasku u góry stoją przygaszone (czat.js, przyciski), więc z edycji wychodzi się przez „Gotowe”; Nowa rozmowa jest przygaszona,
+   bo rozmowa jest pusta. Do 28.10.2026 schodziły tu pigułki znad pola. */
+
+/* Małe okno (telefon): szklana karta na szerokość treści, nad przyciskiem asystenta (pod nim, gdy ten stoi wysoko), nad klawiaturą, gdy ta jest otwarta. U góry napis, o czym
+   pyta, przycisk na cały ekran i krzyżyk; pod spodem ostatnie pytanie z odpowiedzią i pole. Zasłona pod spodem przygasza resztę ekranu: stuknięcie obok zamyka okno. */
+.czat .czat-mini-tylko { display: none; }
+@media (max-width: 759px) {
+  /* Reszta ekranu przygasa i lekko się rozmywa (28.10.2026, Jacek: reszta ma wyglądać na nieaktywną, poza ostrością). */
+  .czat-zaslona.mini { background: rgba(0, 0, 0, .16); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  @media (prefers-color-scheme: dark) { .czat-zaslona.mini { background: rgba(0, 0, 0, .5); } }
+  .czat-arkusz.czat-mini { left: var(--km-lewo, 16px); right: var(--km-prawo, 16px); top: auto; bottom: var(--mini-b, 96px); height: auto;
+    max-height: min(54vh, calc(var(--czat-h, 100vh) - var(--mini-b, 96px) - 24px)); border-radius: 26px; overflow: hidden;
+    background: color-mix(in srgb, var(--cz-tlo) 72%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8);
+    box-shadow: 0 0 0 .5px var(--cz-matowe-ramka), inset 1px 1px 0 rgba(255, 255, 255, .45), 0 8px 28px rgba(0, 0, 0, .2);
+    opacity: 0; transform: translateY(14px) scale(.97); transition: transform 260ms cubic-bezier(.2, 0, 0, 1), opacity 200ms ease; }
+  .czat-arkusz.czat-mini.widac { opacity: 1; transform: none; }
+  .czat-arkusz.czat-mini.mini-pod { top: var(--mini-t, 72px); bottom: auto; max-height: min(54vh, calc(var(--czat-h, 100vh) - var(--mini-t, 72px) - 24px)); }
+  .czat-mini .czat-belka, .czat-mini .czat-pusto, .czat-mini .czat-gora > .czat-historia, .czat-mini .czat-gora > .czat-nowa, .czat-mini .czat-tytul { display: none; }
+  .czat-mini .czat-gora { min-height: 52px; padding: 8px 8px 0 16px; }
+  .czat-mini .czat-mini-chip { display: block; grid-column: 1 / span 6; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cz-tekst2); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+  .czat-mini .czat-wskaz { display: inline-grid; grid-column: 7 / span 2; justify-self: center; touch-action: none; }
+  .czat-mini .czat-rozwin { display: inline-grid; grid-column: 9 / span 2; justify-self: center; }
+  .czat-mini .czat-lista { flex: 0 1 auto; max-height: 38vh; padding: 0 12px 8px; }
+  .czat-mini:not(.mini-rozmiar) .czat-lista > :not(:nth-last-child(-n+2)) { display: none; }
+  .czat-mini .czat-pole { padding: 4px 8px 10px 12px; background: transparent; }
+  .czat-mini .czat-tekst { background: color-mix(in srgb, var(--cz-pod) 82%, transparent); }
+  .czat-mini .czat-stan { padding-top: 0; }
+}
+/* Historia rozmów (od 27.10.2026 wieczorem; Jacek: „bardzo prosta i delikatna, a skuteczna nawigacja w historii … łatwa i widoczna, i ten kosz, i ten archiwum … małe daty”):
+   Archiwum i Kosz stoją na górze listy, każde na sześciu kolumnach siatki, z liczbą (puste jest przygaszone, ale nie znika); rozmowy są pogrupowane po dniach pod małymi
+   nagłówkami. Nazwa widoku stoi w tytule paska u góry. */
+.czat-schowki { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--km-rynna, 8px); margin: 0 0 8px; }
+.czat-schowek { width: 100%; justify-content: center; padding: 0 8px; }
+.czat-grupa { margin: 8px 4px 0; color: var(--cz-tekst2); font-size: 12px; font-weight: 600; letter-spacing: .06em; line-height: 1.3; text-transform: uppercase; }
+
+/* Podpis belki przy pierwszych otwarciach: kreska i napis w jednym rzędzie, na środku. */
+.czat-belka-podpis { display: none; }
+.czat-arkusz .czat-belka.z-podpisem { grid-auto-flow: column; justify-content: center; column-gap: 10px; }
+.czat-arkusz .czat-belka.z-podpisem .czat-belka-podpis { display: block; color: var(--cz-tekst2); font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; }
+
+/* Kółko odpoczywa (29.10.2026, Jacek: „przygasała trochę … w 50% tego, co przy przewijaniu … w gotowości, ale nie jest na maksa naświetlona, ale nie jest na minimum”):
+   2 s po ostatnim użyciu gaśnie przez 0,67 s do 62,5% krycia (app.js, klasa spi), przy przewijaniu strony do 25% (szybko, 0,2 s), a potrząśnięcie telefonem chowa je
+   całe (schowany). Fokus z klawiatury pokazuje je w pełni. Kolejność reguł ma znaczenie: przewijanie wygrywa z odpoczynkiem, schowanie z obydwoma. */
+body:not(.czat-otwarty) .czat-ikonka.czat-plywak.spi:not(.ciagniety):not(.trzyma) { opacity: .625;
+  transition: transform 280ms cubic-bezier(.2, 0, 0, 1), opacity 670ms ease, visibility 0s linear 0s; }
+body:not(.czat-otwarty) .czat-ikonka.czat-plywak.przewija:not(.ciagniety):not(.trzyma) { opacity: .25;
+  transition: transform 280ms cubic-bezier(.2, 0, 0, 1), opacity 200ms ease, visibility 0s linear 0s; }
+/* W oknie auta (body.okno chowa nagłówek razem z jego dziećmi) kółko zostaje (od 29.10.2026, Jacek: „w specyfikacjach samochodu nie ma w ogóle tego clouda”). */
+body.okno .glowa > .czat-ikonka.czat-plywak { display: inline-grid; }
+/* Przy przewijaniu kółko nie rozmywa tła: przy 25% krycia rozmycia i tak nie widać, a liczyłoby się w każdej klatce przewijania. */
+body:not(.czat-otwarty) .czat-ikonka.czat-plywak.przewija::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+body:not(.czat-otwarty) .czat-ikonka.czat-plywak.spi:focus-visible:not(.przewija) { opacity: 1; }
+body:not(.czat-otwarty) .czat-ikonka.czat-plywak.schowany:not(.ciagniety):not(.trzyma) { opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 250ms ease, visibility 0s linear 250ms; }
+/* Pole pytania szersze (28.10.2026; Jacek: „HAL na dole, a wysyłanie do góry … takie same rozmiarów … wówczas sam dymek … może być szerszy … równo z tym,
+   co jest u góry”): Wyślij i mikrofon stoją jeden nad drugim po prawej, a pole bierze resztę, z prawą krawędzią na tej samej linii siatki co rząd nad nim. */
+.czat-pole { display: grid; grid-template-columns: minmax(0, 1fr) 48px; grid-template-rows: 48px minmax(48px, auto); column-gap: 8px; row-gap: 8px; align-items: stretch;
+  padding-right: calc(env(safe-area-inset-right, 0px) + 16px); }
+.czat-pole > .czat-tekst { grid-column: 1; grid-row: 1 / span 2; min-height: 104px; }
+.czat-pole > .czat-wyslij { grid-column: 2; grid-row: 1; align-self: start; }
+.czat-pole > .czat-mik { grid-column: 2; grid-row: 2; align-self: end; }
+/* Małe okno przesunięte ręką i w trakcie przesuwania: ramka w akcencie, bez opóźnienia ruchu. */
+.czat-arkusz.czat-mini.widac { transform: translateY(var(--mini-y, 0px)); }
+.czat-arkusz.czat-mini.widac.mini-niesie { transition: none; box-shadow: 0 0 0 2px var(--cz-akcent), 0 12px 32px rgba(0, 0, 0, .25); }
+/* HAL jak w filmie (28.10.2026; Jacek: „HAL w dużej wersji był bardziej filmowy … światełko zmniejszał, zgaszał … mrugał, myślał. Tutaj on tylko ma taki dymki
+   dookoła … jak najbardziej filmowej, do oryginału”). Scena jest zawsze czarna, jak panel HAL-a w statku, także w jasnym motywie: to scena, nie motyw.
+   Światło to osobna warstwa nad soczewką: rozżarzony środek i czerwona poświata. Czeka: oddycha. Słucha: świeci równo, trochę mocniej. Myśli: przygasa, kurczy się
+   i mruga nierówno. Mówi: rozjaśnia się przy każdym słowie (--hal-moc z czat.js) i migocze. Przy otwarciu oko się rozpala, przy zamknięciu gaśnie. */
+.czat.czat-hal { --cz-tlo: #000000; --cz-pod: #1c1c1e; --cz-tekst: #ffffff; --cz-tekst2: #c0bfbc; --cz-ramka: #48484a; --cz-wlosek: rgba(255, 255, 255, .16);
+  --cz-akcent: #409cff; --cz-szary: #2c2c2e; --cz-cien: rgba(0, 0, 0, 0); --cz-blysk: rgba(255, 255, 255, 0);
+  --cz-lico: linear-gradient(135deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, 0) 50%);
+  --cz-c3d: inset 1px 1px 0 rgba(255, 255, 255, .24), inset -1px -1px 0 rgba(0, 0, 0, .45), 0 0 0 .5px rgba(255, 255, 255, .2);
+  background: #000000; color: #ffffff; color-scheme: dark; }
+.czat-hal .czat-hal-oko .czat-oko { box-shadow: 0 0 0 .5px rgba(255, 255, 255, .22), 0 0 0 1px rgba(0, 0, 0, .9); }
+.czat-hal[data-stan] .czat-oko::after { animation: none; filter: none; box-shadow: inset 0 0 0 3px #111111, inset 3px 3px 8px rgba(255, 255, 255, .12), inset -4px -4px 12px rgba(0, 0, 0, .6); }
+.czat-hal-oko { isolation: isolate; }
+.czat-hal-swiatlo { position: absolute; inset: 15px; z-index: 1; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(circle, #fff7dc 0 3%, #ffd36a 7%, #ff5a1f 14%, rgba(228, 12, 10, .9) 24%, rgba(150, 0, 0, .4) 38%, rgba(60, 0, 0, 0) 54%);
+  box-shadow: 0 0 34px 8px rgba(255, 30, 10, .24); opacity: .85; transform: scale(.96); transition: transform 90ms ease, opacity 90ms ease; }
+.czat-hal[data-stan="czeka"] .czat-hal-swiatlo { animation: hal-oddech 5s ease-in-out infinite; }
+.czat-hal[data-stan="slucha"] .czat-hal-swiatlo { opacity: 1; animation: hal-slucha 2.4s ease-in-out infinite; }
+.czat-hal[data-stan="mysli"] .czat-hal-swiatlo { animation: hal-mysli 1.8s linear infinite; }
+.czat-hal[data-stan="mowi"] .czat-hal-swiatlo { opacity: var(--hal-moc, .95); transform: scale(calc(.86 + var(--hal-moc, .95) * .16)); animation: hal-mowi 1.1s steps(1, end) infinite; }
+.czat-hal .czat-hal-oko { animation: hal-budzi 1.4s ease-out both; }
+.czat-hal.gasnie .czat-hal-oko { animation: hal-gasnie 560ms ease-in forwards; }
+@keyframes hal-oddech { 0%, 100% { opacity: .72; transform: scale(.93); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes hal-slucha { 0%, 100% { transform: scale(1.02); } 50% { transform: scale(1.07); } }
+@keyframes hal-mysli { 0% { opacity: .9; transform: scale(1); } 14% { opacity: .22; transform: scale(.78); } 26% { opacity: .95; transform: scale(1.02); }
+  48% { opacity: .5; transform: scale(.88); } 60% { opacity: .16; transform: scale(.74); } 72% { opacity: 1; transform: scale(1); } 100% { opacity: .9; transform: scale(1); } }
+@keyframes hal-mowi { 0% { filter: brightness(1); } 23% { filter: brightness(1.18); } 41% { filter: brightness(.92); } 67% { filter: brightness(1.12); } 84% { filter: brightness(.97); } }
+@keyframes hal-budzi { 0% { filter: brightness(0); } 35% { filter: brightness(.25); } 55% { filter: brightness(.9); } 62% { filter: brightness(.4); } 100% { filter: brightness(1); } }
+@keyframes hal-gasnie { 0% { filter: brightness(1); } 30% { filter: brightness(1.25); } 100% { filter: brightness(0); } }
+/* Kreska wielkości małego okna (28.10.2026): pod polem pytania, tylko w małym oknie; po ręcznej zmianie rozmowa ma zapisaną wysokość i całą treść. */
+.czat-mini-uchwyt { display: none; }
+.czat-mini .czat-mini-uchwyt { position: relative; display: grid; place-items: center; flex: none; height: 18px; margin-top: -6px; cursor: ns-resize; touch-action: none; }
+.czat-mini .czat-mini-uchwyt::before { content: ""; position: absolute; inset: -8px 0 0; }
+.czat-mini .czat-mini-uchwyt > i { width: 36px; height: 4px; border-radius: 2px; background: var(--cz-tekst2); opacity: .55; transition: width 160ms ease, opacity 160ms ease; }
+.czat-mini.mini-niesie .czat-mini-uchwyt > i { width: 56px; opacity: 1; background: var(--cz-akcent); }
+.czat-mini.mini-rozmiar .czat-lista { height: var(--mini-lista); max-height: none; }
+.czat-arkusz.czat-mini.mini-rozmiar { max-height: calc(var(--czat-h, 100vh) - 16px); }
+/* Wskazanie (próba od 28.10.2026, czat.js „wskazanie”; Jacek o pomyśle „ping”: „Tak, zrób próbę”): celownik w pasku małego okna (szklane koło jak inne), pinezka,
+   która idzie za palcem, ramka wokół wskazanej rzeczy i „O tym: …” nad polem pytania. Pinezka to szklane koło 36 px z celownikiem w akcencie i obwódką; ramka ma 2 px
+   w akcencie, 3 px od rzeczy, z jasnym obrysem, żeby była widać także na zdjęciu. W trakcie przeciągania zasłona małego okna nie przygasza aplikacji, żeby było widać,
+   co się wskazuje. „O tym: …” to blok z ramką 1 px: „O tym:” w akcencie (5,1:1 w jasnym, 7,5:1 w ciemnym), tekst 15:1 i 17:1, krzyżyk 4,1:1 i 6,8:1 (grafika). */
+.czat-zaslona.mini.wskazuje { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.czat-wskaznik { position: fixed; z-index: 46; left: 0; top: 0; display: grid; place-items: center; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+  color: var(--cz-akcent); background: color-mix(in srgb, var(--cz-tlo) 86%, transparent); -webkit-backdrop-filter: blur(10px) saturate(1.6); backdrop-filter: blur(10px) saturate(1.6);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cz-akcent) 60%, transparent), inset 1px 1px 0 rgba(255, 255, 255, .6), 2px 3px 10px rgba(0, 0, 0, .24); pointer-events: none; will-change: transform; }
+.czat-wskaz-ramka { position: fixed; z-index: 41; box-sizing: border-box; border: 2px solid var(--cz-akcent); pointer-events: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cz-tlo) 75%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--cz-tlo) 75%, transparent); }
+.czat-wskaznik[hidden], .czat-wskaz-ramka[hidden] { display: none; }
+.czat-wskazane { display: none; }
+.czat-mini .czat-wskazane:not([hidden]) { display: flex; flex: none; align-items: center; gap: 4px; min-height: 40px; margin: 4px 8px 2px 12px; padding: 0 0 0 16px;
+  border: 1px solid var(--cz-ramka); border-radius: 20px; background: color-mix(in srgb, var(--cz-pod) 88%, transparent); }
+.czat-wskazane-tekst { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0; background: none; color: var(--cz-tekst); font: inherit; font-size: 14px; font-weight: 500;
+  line-height: 1.3; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.czat-wskazane-o { color: var(--cz-akcent-tekst); font-weight: 600; }
+.czat-wskazane-tekst:focus-visible { outline: 2px solid var(--cz-akcent); outline-offset: 2px; border-radius: 8px; }
+.czat-wskazane .czat-wskazane-usun { width: 40px; height: 40px; }
+.czat-wskazane .czat-wskazane-usun::before { inset: 8px; }
+
+/* Prank dla Kasi (od 31.10.2026, app.js, „prank”). Łaskotki: kółko asystenta chichocze, wierci się i rumieni. Dynia (Halloween): kółko robi się
+   pomarańczową dynią z twarzą, która świeci jak świeczka, i drży. Ruch dostają tarcza (::before), znak i nakładki, bo położenie
+   pływającego kółka trzyma jego transform. Nakładka leży na tarczy: 4 px od brzegu jak ::before, w pływającym kółku na całym. */
+.czat-rumience, .czat-dynia { position: absolute; inset: 4px; border-radius: 50%; pointer-events: none; opacity: 0; }
+.czat-plywak .czat-rumience, .czat-plywak .czat-dynia { inset: 0; }
+.czat-rumience i { position: absolute; top: 58%; width: 20%; height: 13%; border-radius: 50%; background: #ff6f91; filter: blur(1.2px); }
+.czat-rumience i:first-child { left: 17%; }
+.czat-rumience i:last-child { right: 17%; }
+.czat-dynia svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.czat-dynia .twarz { fill: #ffd60a; filter: drop-shadow(0 0 2px #ffcc00); animation: czat-swieca 180ms steps(2, jump-none) infinite alternate; }
+/* Świeczka migocze jasnością i poświatą, a nie przezroczystością, żeby przez twarz nie było widać tarczy. */
+.czat-ikonka.laskotki::before, .czat-ikonka.laskotki > svg { animation: czat-wierci 900ms cubic-bezier(.3, .7, .4, 1) both; }
+.czat-ikonka.laskotki .czat-rumience { animation: czat-wierci 900ms cubic-bezier(.3, .7, .4, 1) both, czat-rumieni 1100ms ease both; }
+.czat-ikonka.dynia::before { background-color: #ff8a00; background-image: radial-gradient(circle at 50% 38%, #ffb443 0%, #ff8a00 50%, #b84d00 100%);
+  animation: czat-drzy 1300ms ease-out both; }
+.czat-ikonka.dynia > svg { opacity: 0; }
+.czat-ikonka.dynia .czat-dynia { opacity: 1; animation: czat-drzy 1300ms ease-out both; }
+@keyframes czat-wierci {
+  0% { transform: rotate(0) scale(1); } 12% { transform: rotate(-14deg) scale(1.06); } 26% { transform: rotate(12deg) scale(1.04); }
+  40% { transform: rotate(-10deg) scale(1.08); } 54% { transform: rotate(8deg) scale(1.04); } 68% { transform: rotate(-5deg) scale(1.03); }
+  82% { transform: rotate(3deg) scale(1.01); } 100% { transform: rotate(0) scale(1); }
+}
+@keyframes czat-drzy {
+  0% { transform: rotate(0) scale(1); } 8% { transform: rotate(-6deg) scale(1.14); } 16% { transform: rotate(6deg) scale(1.12); }
+  24% { transform: rotate(-5deg) scale(1.12); } 32% { transform: rotate(5deg) scale(1.12); } 40% { transform: rotate(-4deg) scale(1.1); }
+  48% { transform: rotate(4deg) scale(1.1); } 60% { transform: rotate(-3deg) scale(1.08); } 72% { transform: rotate(2deg) scale(1.06); }
+  86% { transform: rotate(-1deg) scale(1.04); } 100% { transform: rotate(0) scale(1.02); }
+}
+@keyframes czat-rumieni { 0% { opacity: 0; } 20%, 80% { opacity: .8; } 100% { opacity: 0; } }
+@keyframes czat-swieca { from { filter: drop-shadow(0 0 1px #ffb800) brightness(.86); } to { filter: drop-shadow(0 0 3px #ffcc00) brightness(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .czat-ikonka.laskotki::before, .czat-ikonka.laskotki > svg, .czat-ikonka.dynia::before, .czat-ikonka.dynia .czat-dynia, .czat-dynia .twarz { animation: none; }
+  .czat-ikonka.laskotki .czat-rumience { animation: czat-rumieni 1100ms ease both; }
 }

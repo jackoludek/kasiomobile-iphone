@@ -119,13 +119,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
    wieczorem: „nie potrzebujemy wiedzieć, kiedy został update'owany”, „tak prosto, że nie będzie potrzeba ściągi”). Rząd stoi na
    środku szarego pola razem z pasem przy wycięciu ekranu (Jacek: „On jest niżej trochę. Ja bym wolał, żeby na środku”): połowa
    wcięcia nad nim. Pod nim od 26.10.2026 tylko 8 px (Jacek: nagłówek „niepotrzebnie jest takie długie … Amatorsko to wygląda”): razem
-   z odstępem strony logo stoi na środku między górą ekranu a pierwszą rzeczą w treści, a całe to pole ma jeden odcień. */
+   z odstępem strony logo stoi na środku między górą ekranu a pierwszą rzeczą w treści, a całe to pole ma jeden odcień. Od 28.10.2026 logo stoi pod całym pasem
+   aparatu (Jacek: logo za blisko kamerki), na środku między pasem a polem szukania: 12 px nad nim i 12 px pod nim. */
 .glowa {
   flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: calc(var(--km-gora) / 2 + 8px) calc(var(--km-x1) - 4px) 8px var(--km-x0);
+  padding: calc(var(--km-gora) + 8px) calc(var(--km-x1) - 4px) 8px var(--km-x0);
 }
 /* Miarki siatki dla app.js: szerokość cienkiego paska przewijania i marginesy w pikselach, razem z wcięciami ekranu. */
 .siatka-pasek { position: absolute; visibility: hidden; width: 100px; height: 40px; overflow: scroll; scrollbar-width: thin; }
@@ -135,9 +136,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
    a ujemny margines trzyma układ nagłówka taki, jak przy samym obrazku 40 px. */
 .logo { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; margin: -4px; padding: 0; border: 0; border-radius: 14px; background: none; }
 .logo img { display: block; width: 40px; height: 40px; transition: transform 120ms ease, filter 400ms ease; }
-/* Niespodzianka (od 26.10.2026, Jacek: „kolory trochę zmieni … w obu przypadkach … efekt dźwiękowy, ale może subtelne”): w kolorowym trybie
-   barwy logo przesuwają się o 28°, a przy każdym przełączeniu logo podskakuje raz (app.js, „Niespodzianka”, razem z cichym dźwiękiem). */
-body.kolorowo .logo img { filter: hue-rotate(28deg) saturate(1.3); }
+/* Niespodzianka (od 26.10.2026 wieczorem, Jacek: „przytrzymać przez pół sekundy … samą ikonę”): po 0,5 s przytrzymania logo podskakuje raz,
+   a po puszczeniu otwiera się tryb HAL (app.js, „Niespodzianka”; czat.js, „HAL”). Do tego dnia to przytrzymanie włączało kolorowe tło. */
 .logo.niespodzianka img { animation: niespodzianka 420ms cubic-bezier(.3, 1.7, .5, 1); }
 @keyframes niespodzianka { 40% { transform: scale(1.14) rotate(-6deg); } }
 .logo:active img { transform: scale(.94); }
@@ -399,28 +399,20 @@ body.okno main { margin-bottom: env(safe-area-inset-bottom); }
 .podwidoki [role="radio"].ciagniety { z-index: 2; cursor: grabbing; box-shadow: 0 0 0 1px var(--barwa), 0 6px 16px var(--cien-mocny); }
 
 /* Barwy zakładek (od 25.10.2026 wieczorem; Jacek: „Zdechły niebieski … zdechłego zielonego … pseudo fiolet”, a paleta Apple: żywa barwa
-   do akcentu, pastel z niej do rzeczy dyskretnych). Każda zakładka ma barwę z palety systemowej Apple: pomarańczowe Oferty, niebieskie Podium,
-   zielone Finanse i fioletowy Poradnik (Oferty i Finanse zamieniły się barwami 26.10.2026, Jacek: „pomarańczowy jest excited”). --gleboka to ta barwa przyciemniona tak, że biały napis ma na niej od 4,5:1, --zywa-c to
+   do akcentu, pastel z niej do rzeczy dyskretnych). Każda zakładka ma barwę z palety systemowej Apple: niebieskie Oferty, pomarańczowe Podium,
+   zielone Finanse i fioletowy Poradnik (Oferty i Finanse zamieniły się barwami 26.10.2026, Jacek: „pomarańczowy jest excited”; wieczorem Oferty i Podium zamieniły się barwami: pierwsza niebieska, druga pomarańczowa). --gleboka to ta barwa przyciemniona tak, że biały napis ma na niej od 4,5:1, --zywa-c to
    żywa barwa ciemnego motywu, a --pastel z index.html to 16% barwy na bieli (w ciemnym 28% na #1c1c1e). --barwa to barwa wybranej rzeczy
    w bieżącym motywie: tło wybranej zakładki i pigułki, pierścień i pasek przenoszenia. Tło nagłówka, nawigacji i stron jest we wszystkich
    czterech zakładkach takie samo: biel, w ciemnym czerń (Jacek, 26.10.2026, po próbie z odcieniami barw zakładek na całym ekranie:
    „ten eksperyment z kolorem … się nie udało, wracamy do bieli wszystkich czterech takiej samej”). Kontrast każdej pary liczy skrypt. */
-#seg-katalog, .podwidoki[data-z="katalog"], body[data-zakladka="katalog"] { --gleboka: #bc5500; --zywa-c: #ff9f0a; }
-#seg-modele, .podwidoki[data-z="modele"], body[data-zakladka="modele"] { --gleboka: #0071e3; --zywa-c: #0a84ff; }
+#seg-katalog, .podwidoki[data-z="katalog"], body[data-zakladka="katalog"] { --gleboka: #0071e3; --zywa-c: #0a84ff; }
+#seg-modele, .podwidoki[data-z="modele"], body[data-zakladka="modele"] { --gleboka: #bc5500; --zywa-c: #ff9f0a; }
 #seg-kredyt, .podwidoki[data-z="kredyt"], body[data-zakladka="kredyt"] { --gleboka: #1e7d36; --zywa-c: #30d158; }
 #seg-poradnik, .podwidoki[data-z="poradnik"], body[data-zakladka="poradnik"] { --gleboka: #9a4fcf; --zywa-c: #bf5af2; }
 body, .karty [role="tab"], .podwidoki { --barwa: var(--gleboka, var(--akcent)); }
 body { --tlo-pasa: var(--tlo); background-color: var(--tlo-pasa); }
-/* Kolorowe tło jako niespodzianka (od 26.10.2026; Jacek: „ten kolorowy … jest Easter … przełącznik … pod samym” logo): przytrzymanie logo
-   przez 0,6 s włącza i wyłącza odcień 10% barwy wybranej zakładki na całym ekranie, także pod stronami (app.js, „Niespodzianka”).
-   Domyślnie biel, w ciemnym motywie zawsze czerń. Odcień trwa do zamknięcia aplikacji, a każdy start jest śnieżnobiały (od 26.10.2026,
-   Jacek: „chodziło o ten biały, żeby to było śnieżnobiałe”). Odcienie idą za barwami zakładek: Oferty pomarańczowe, Finanse zielone. */
-@media (prefers-color-scheme: light) {
-  body.kolorowo[data-zakladka="katalog"] { --tlo-pasa: #fff4e6; }
-  body.kolorowo[data-zakladka="modele"] { --tlo-pasa: #e6f2ff; }
-  body.kolorowo[data-zakladka="kredyt"] { --tlo-pasa: #ebf9ee; }
-  body.kolorowo[data-zakladka="poradnik"] { --tlo-pasa: #f7eefc; }
-}
+/* Tło strony, nagłówka i pasa nawigacji jest śnieżnobiałe (w ciemnym motywie czarne) w każdej zakładce (Jacek, 26.10.2026: „chodziło o ten
+   biały”). Kolorowego tła, które do wieczora 26.10.2026 włączało przytrzymanie logo, już nie ma. */
 @media (prefers-color-scheme: dark) {
   body, .karty [role="tab"], .podwidoki { --barwa: var(--zywa-c, var(--akcent)); }
   .karty [role="tab"]:not([aria-selected="true"]) { background-color: var(--pastel-c); }
@@ -444,7 +436,8 @@ body.okno .glowa { background-color: var(--strona); }
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .38), inset -1px -1px 0 rgba(0, 0, 0, .2), 1px 1px 2px rgba(0, 0, 0, .16), 3px 3px 10px color-mix(in srgb, var(--barwa) 42%, transparent), 6px 6px 18px rgba(0, 0, 0, .06);
 }
 .podwidoki [aria-checked="true"] { outline: 2px solid var(--barwa); outline-offset: 2px; }
-.karty [aria-selected="true"], .podwidoki [aria-checked="true"].blysk { animation: polyskRaz 1.2s ease-in-out 1; }
+/* Smuga przy wyborze zdjęta 28.10.2026 (Jacek przez Zmiany GUI: przebłyski to przeżytek, „Time to say goodbye to those”). Wybrane mówi pełna barwa i pierścień. */
+.karty [aria-selected="true"], .podwidoki [aria-checked="true"].blysk { animation: none; }
 @keyframes polyskRaz { from { background-position: 100% 0, 0 0; } to { background-position: 0 0, 0 0; } }
 .karty [aria-selected="true"] .znak use { fill: var(--na-barwie); }
 .karty [aria-selected="true"] .znak path { fill: var(--barwa); }
@@ -490,24 +483,7 @@ body.czat-otwarty .dol { z-index: 43; }
   .karty, .podwidoki { gap: 12px; }
   .dol.przenoszony { z-index: 30; box-shadow: inset 0 .5px 0 var(--wlos), 0 -8px 24px var(--cien-mocny); }
   .dol.przenoszony > .karty, .dol.przenoszony > .podkarty { transform: scale(1.02); transition: transform 120ms ease; }
-  /* Przenoszenie: od 0,25 s przytrzymania nad pasem stoi pasek postępu, który przez 1,75 s wypełnia się od lewej do prawej, ze strzałką
-     w górę z lewej i w dół z prawej (Jacek: strzałki „muszą być widoczne … w dół i w górę”, a zapalanie po kolei „nie jest oczywiste”).
-     Gdy się wypełni, pas unosi się i jedzie za palcem. Pasek i strzałki mają barwę wybranej zakładki, tor 20% tej barwy. */
-  .postep-paska {
-    --szewron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 8'%3E%3Cpath d='M1.5 6.6 7 1.4l5.5 5.2' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    position: absolute; z-index: -1; bottom: 100%; left: 0; right: 0; height: 28px;
-    display: flex; align-items: center; gap: 12px; padding: 0 var(--km-x1) 0 var(--km-x0);
-    background: inherit; box-shadow: inset 0 .5px 0 var(--wlos); pointer-events: none; opacity: 0; transition: opacity 150ms ease;
-  }
-  .postep-paska i { flex: none; width: 14px; height: 8px; background: var(--barwa);
-    -webkit-mask: var(--szewron) center / contain no-repeat; mask: var(--szewron) center / contain no-repeat; }
-  .postep-paska .w-dol { transform: scaleY(-1); }
-  .postep-paska span { flex: 1; height: 6px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--barwa) 20%, transparent); }
-  .postep-paska span::after { content: ""; display: block; height: 100%; background: var(--barwa); transform: scaleX(0); transform-origin: left; }
-  .dol.trzyma .postep-paska { opacity: 1; }
-  .dol.trzyma .postep-paska span::after { animation: postepPaska var(--czas, 1750ms) linear forwards; }
 }
-@keyframes postepPaska { to { transform: scaleX(1); } }
 /* Szeroki ekran: pigułki stoją w jednym rzędzie pod zakładkami, nad treścią, każda tak szeroka jak zakładka (do 1240 px ćwierć kolumny
    treści, potem 176 px), z tą samą przerwą, drugie słowo w tej samej linii drugim planem. Nawigacja się nie przenosi. */
 @media (min-width: 760px) {
@@ -518,6 +494,172 @@ body.czat-otwarty .dol { z-index: 43; }
   .podwidoki .skad { font-size: 16px; }
   .podwidoki [role="radio"]::before { inset: -4px 0; }
   .karty [aria-selected="true"]::before { border-radius: 24px; }
-  .postep-paska { display: none; }
+
 }
 @media (min-width: 1240px) { .podwidoki [role="radio"] { flex: 0 0 176px; } }
+
+/* Nawigacja jako chmurka (od 26.10.2026 wieczorem; Jacek: „we need to sacrifice a little bit of real estate … rounded cloud, rather than just
+   flat cutoff … a separate entity … some drop shadow”): na telefonie zakładki i pigułki stoją w zaokrąglonej chmurce z ramką i cieniem, 8 px od
+   brzegów ekranu, a nie na pasie ściętym od dołu. Brzegi zakładek zostają na linii siatki: chmurka wystaje 8 px poza nią, tyle ma wypełnienia
+   (krawędź chmurki 8 px od ekranu, wypełnienie 8 px, przyciski 16 px). Pas jest przezroczysty, a chmurkę rysuje jego ::before. Odstęp pod chmurką
+   to dawny odstęp pod przyciskami minus 8 px wypełnienia, więc przenoszenie nawigacji (--km-nav-y) działa jak przedtem. Ciemny motyw: #1c1c1e
+   z włoskiem (cienia na czerni nie widać). Podczas przenoszenia pasek postępu stoi nad chmurką jako osobna karta. */
+:root {
+  --chmura-tlo: #ffffff;
+  --chmura-cien: 0 0 0 1px rgba(0, 0, 0, .1), 0 2px 6px rgba(0, 0, 0, .08), 0 10px 28px rgba(0, 0, 0, .14), 0 20px 44px rgba(0, 0, 0, .08);
+  --chmura-cien-gora: 0 0 0 1px rgba(0, 0, 0, .1), 0 4px 12px rgba(0, 0, 0, .16), 0 18px 48px rgba(0, 0, 0, .2);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chmura-tlo: #1c1c1e;
+    --chmura-cien: 0 0 0 1px rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .07);
+    --chmura-cien-gora: 0 0 0 1px rgba(255, 255, 255, .24), inset 0 1px 0 rgba(255, 255, 255, .1);
+  }
+}
+@media (max-width: 759px) {
+  .dol { --dol-pb: max(var(--km-dol-min), calc(var(--km-dol-baza) + var(--km-nav-y, 0px))); padding-top: 16px; padding-bottom: var(--dol-pb); background-color: transparent; box-shadow: none; }
+  .dol::before { content: ""; position: absolute; z-index: -1; top: 8px; bottom: max(0px, calc(var(--dol-pb) - 8px)); left: calc(var(--km-x0) - 8px); right: calc(var(--km-x1) - 8px);
+    border-radius: calc(var(--km-rog) + 8px); background: var(--chmura-tlo); box-shadow: var(--chmura-cien); pointer-events: none; transition: box-shadow 160ms ease; }
+  .dol.przenoszony { box-shadow: none; }
+  .dol.przenoszony::before { box-shadow: var(--chmura-cien-gora); }
+  .postep-paska { left: calc(var(--km-x0) - 8px); right: calc(var(--km-x1) - 8px); padding: 0 16px; border-radius: 16px; background: var(--chmura-tlo); box-shadow: var(--chmura-cien); }
+}
+/* ---- Próby wyglądu nawigacji (od 27.10.2026) ----
+   Jacek: „te kolorki … nie jest over the top”, „zróbmy kilka wersji tej aplikacji, żebym mógł wybrać”, „jak będzie wiadomo, że te na dole są powiązane
+   z tymi u góry? … jednoznacznie. Po jakimś czasie, jak się wraca do aplikacji”. Na Androidzie Jacka menu pod logo ma wybór: Obecny (bez zmian) i cztery próby
+   (body[data-wyglad]). Wspólne dla prób: niewybrane zakładki są neutralne, wybrana ma jasne tło (14% barwy) i obwódkę 1,5 px, a napis zostaje w kolorze tekstu.
+   Rząd pigułek jest powiązany z zakładką wskaźnikiem: małym trójkątem między rzędami pod środkiem wybranej zakładki (--wsk-x liczy app.js), który przesuwa
+   się razem z wyborem, więc związek widać także bez koloru. 1: barwa sekcji tylko na wybranej. 2: jeden niebieski (u Jacka „wybrane”). 3: bez koloru.
+   4: ikony zostają kolorowe, reszta spokojna. Kontrast policzony skryptem: napis co najmniej 11:1, znak 3,87:1, obwódka 4,66:1. Po decyzji Jacka przegrane próby znikną. */
+:root { --niebieski: #0071e3; }
+@media (prefers-color-scheme: dark) { :root { --niebieski: #0a84ff; } }
+body[data-wyglad="2"], body[data-wyglad="2"] .karty [role="tab"], body[data-wyglad="2"] .podwidoki { --barwa: var(--niebieski); }
+body[data-wyglad="3"], body[data-wyglad="3"] .karty [role="tab"], body[data-wyglad="3"] .podwidoki { --barwa: var(--tekst); }
+body[data-wyglad] .karty [role="tab"]:not([aria-selected="true"]) { background-color: var(--przycisk); }
+body[data-wyglad] .karty [aria-selected="true"], body[data-wyglad] .podwidoki [aria-checked="true"] {
+  background-color: color-mix(in srgb, var(--barwa) 14%, var(--chmura-tlo)); background-image: none; color: var(--tekst);
+  box-shadow: inset 0 0 0 1.5px var(--barwa); outline: none; animation: none;
+}
+body[data-wyglad="3"] .karty [aria-selected="true"], body[data-wyglad="3"] .podwidoki [aria-checked="true"] { box-shadow: inset 0 0 0 2px var(--barwa); }
+body[data-wyglad] .karty [aria-selected="true"]::before { display: none; }
+body:is([data-wyglad="1"], [data-wyglad="2"], [data-wyglad="3"]) .karty .znak { transform: scale(1.14); }
+body:is([data-wyglad="1"], [data-wyglad="2"], [data-wyglad="3"]) .karty .znak use { fill: transparent; }
+body:is([data-wyglad="1"], [data-wyglad="2"], [data-wyglad="3"]) .karty .znak path { fill: var(--tekst2); }
+body:is([data-wyglad="1"], [data-wyglad="2"], [data-wyglad="3"]) .karty [aria-selected="true"] .znak path { fill: var(--barwa); }
+body[data-wyglad="4"] #seg-katalog[aria-selected="true"] .znak use { fill: url(#g-ogl); }
+body[data-wyglad="4"] #seg-modele[aria-selected="true"] .znak use { fill: url(#g-kat); }
+body[data-wyglad="4"] #seg-kredyt[aria-selected="true"] .znak use { fill: url(#g-kre); }
+body[data-wyglad="4"] #seg-poradnik[aria-selected="true"] .znak use { fill: url(#g-por); }
+body[data-wyglad="4"] .karty [aria-selected="true"] .znak path { fill: #ffffff; }
+@media (max-width: 759px) {
+  body[data-wyglad] .podkarty::before {
+    content: ""; position: absolute; z-index: 1; top: -12px; left: calc(var(--wsk-x, 50%) - 8px); width: 16px; height: 9px; background: var(--barwa);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%); pointer-events: none; transition: left 240ms cubic-bezier(.2, 0, 0, 1);
+  }
+}
+.menu-otomoto [role="menuitemradio"][aria-checked="true"] { box-shadow: 0 0 0 1.5px var(--akcent), var(--c3d); }
+.menu-otomoto [role="menuitemradio"][aria-checked="true"]::after { content: "✓"; color: var(--akcent-tekst); font-weight: 700; }
+/* ---- Czat na cały ekran i gesty od krawędzi (od 27.10.2026 wieczorem) ----
+   Jacek: „AI … powinno być na cały ekran, tamte menu na dole powinno się zsuwać do takiej belki małej na dole, i jak chcemy powrócić, to robimy swipe up”. Na telefonie
+   otwarta rozmowa (czat.css, .czat-arkusz) sięga od górnej do dolnej krawędzi, a nawigacja zsuwa się pod ekran; zostaje po niej belka na dole czatu (czat.js, .czat-belka),
+   której przesunięcie w górę wyciąga nawigację z powrotem i zamyka czat (app.js, wysunNawigacje). Małe okno (body.czat-mini) zostawia nawigację na miejscu. Ukryta nawigacja
+   nie jest już w drzewie dostępności ani w kolejności Tab (visibility), ale znika dopiero po zsunięciu. */
+@media (max-width: 759px) {
+  body.czat-otwarty .dol { transform: translateY(calc(100% + 32px)); opacity: 0; visibility: hidden; pointer-events: none; }
+  /* Przejście ma tylko w chwili otwierania i zamykania (klasa czat-ruch trwa 450 ms, app.js): poza nią nawigacja nie ma przejścia na transform, bo przenoszenie jej palcem
+     („przenoszony”) i dojazd na miejsce (Web Animations) liczą się co do piksela. */
+  body.czat-ruch .dol { transition: background-color 200ms ease, transform 320ms cubic-bezier(.2, 0, 0, 1), opacity 200ms ease, visibility 0s linear 0s; }
+  body.czat-ruch.czat-otwarty .dol { transition: background-color 200ms ease, transform 320ms cubic-bezier(.2, 0, 0, 1), opacity 200ms ease, visibility 0s linear 320ms; }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 759px) { body.czat-ruch .dol { transition: opacity 120ms ease, visibility 0s linear 0s; } body.czat-ruch.czat-otwarty .dol { transition: opacity 120ms ease, visibility 0s linear 120ms; } }
+/* Pasy przy bocznych krawędziach (telefon, tylko dotyk): od lewej w prawo to Wstecz, od prawej w lewo Dalej. Pas ma 16 px, tyle co margines strony; strzałka w kółku wyjeżdża spod
+   palca i robi się niebieska, gdy gest jest dość długi (biały znak na #0071e3 ma 4,7:1). */
+.krawedz { display: none; }
+@media (max-width: 759px) and (pointer: coarse) {
+  .krawedz { display: block; position: fixed; z-index: 55; top: var(--km-gora, 0px); bottom: 0; width: 16px; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
+  .krawedz-l { left: 0; }
+  .krawedz-p { right: 0; }
+  .krawedz-znak { position: absolute; top: calc(var(--k-y, 50vh) - var(--km-gora, 0px)); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+    color: var(--tekst); background: var(--chmura-tlo); box-shadow: var(--chmura-cien); opacity: 0; pointer-events: none; transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease; }
+  .krawedz-l .krawedz-znak { left: 0; transform: translate(calc(var(--k-dx, 0px) * .7 - 48px), -50%); }
+  .krawedz-p .krawedz-znak { right: 0; transform: translate(calc(48px - var(--k-dx, 0px) * .7), -50%); }
+  .krawedz.ciagnie .krawedz-znak { opacity: 1; }
+  .krawedz.gotowe .krawedz-znak { color: #ffffff; background: #0071e3; }
+}
+/* Przycisk asystenta pływa nad stroną (czat.css, .czat-plywak), ale nagłówek zostaje tak wysoki, jak był, gdy kółko stało w jego rzędzie: logo 12 px od górnej krawędzi, tak jak
+   nawigacja od dolnej (Jacek, 24.10.2026: „przynajmniej tak od krawędzi ekranu, tak bufor jest u góry”). Okno w stronie (body.okno) nagłówka nie ma. */
+body:not(.okno) .glowa { min-height: calc(64px + var(--km-gora)); }
+/* Próba 5 „Szkło jak w Kiro” (28.10.2026, Jacek: „te butony … również nie powinny być w takiej formie atrakcyjnej … bezbłędnie”): wciśnięta zakładka i pigułka rosną o 9% jak tab w Kiro; przyciski w stronach w ramkach stylizuje KIRO5 w app.js. */
+body[data-szklo="5"] .karty [role="tab"]:active, body[data-szklo="5"] .podwidoki [role="radio"]:active { transform: scale(1.09); }
+/* Przenoszenie nawigacji (28.10.2026; Jacek: „Samo obramowanie i klasyczny sposób zaznaczenia … wystarczy”): przytrzymanie wolnego miejsca w pasie przez 0,5 s
+   podnosi pas z ramką w barwie wybranej zakładki. Bez kreseczki u góry i bez strzałek. */
+@media (max-width: 759px) {
+  .dol.przenoszony::before { box-shadow: 0 0 0 2px var(--barwa), var(--chmura-cien-gora); }
+}
+/* Miejsce na liście ofert przy przewijaniu (app.js, „Wskaźnik miejsca”): pigułka z ramką przy prawej krawędzi, jedzie razem z przewijaniem i gaśnie sama. Bez rozmycia
+   tła, bo stoi nad przewijaną treścią. Napis #1d1d1f na 92% bieli i biały na #1c1c1e mają ponad 14:1. */
+.miejsce-listy { position: fixed; z-index: 40; top: 0; right: calc(var(--km-prawo, 0px) + 6px); height: 28px; padding: 0 16px; display: flex; align-items: center;
+  border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; color: #1d1d1f;
+  background: rgba(255, 255, 255, .92); box-shadow: 0 0 0 1px rgba(0, 0, 0, .12), 2px 3px 8px rgba(0, 0, 0, .12); pointer-events: none;
+  opacity: 0; transition: opacity 300ms ease; will-change: transform, opacity; }
+.miejsce-listy.widac { opacity: 1; transition-duration: 120ms; }
+@media (prefers-color-scheme: dark) { .miejsce-listy { color: #ffffff; background: rgba(28, 28, 30, .94); box-shadow: 0 0 0 1px rgba(255, 255, 255, .16); } }
+/* Nowa wersja na telefonie (28.10.2026): szklana karta u góry, z ramką w akcencie, materiałem jak „Cofnij”. Wchodzi z rozmycia, znika w górę. */
+.nowa-wersja { position: fixed; z-index: 70; top: calc(var(--km-gora, 0px) + 12px); left: 50%; width: min(calc(100% - 32px), 380px); box-sizing: border-box;
+  display: grid; gap: 4px; padding: 14px 20px; border-radius: 22px; text-align: center; cursor: pointer; transform: translateX(-50%);
+  color: #1d1d1f; background: rgba(227, 239, 253, .82); -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(0, 113, 227, .32), 0 2px 8px rgba(0, 72, 160, .14), 0 12px 32px rgba(0, 72, 160, .18);
+  animation: nowa-wersja-wchodzi 420ms cubic-bezier(.2, 0, 0, 1) both; }
+.nowa-wersja strong { font-size: 17px; font-weight: 600; }
+.nowa-wersja span { font-size: 15px; color: #3a3a3c; font-variant-numeric: tabular-nums; }
+.nowa-wersja.znika { animation: nowa-wersja-znika 360ms ease-in forwards; }
+@keyframes nowa-wersja-wchodzi { from { opacity: 0; transform: translate(-50%, -12px) scale(.96); filter: blur(4px); } to { opacity: 1; transform: translateX(-50%); filter: none; } }
+@keyframes nowa-wersja-znika { to { opacity: 0; transform: translate(-50%, -8px) scale(1.03); filter: blur(4px); } }
+@media (prefers-color-scheme: dark) {
+  .nowa-wersja { color: #ffffff; background: rgba(16, 38, 63, .86); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .2), 0 0 0 1px rgba(64, 156, 255, .45); }
+  .nowa-wersja span { color: #c7c7cc; }
+}
+
+/* Lista jak strona (od 29.10.2026, app.js, „Lista jak strona”): na Androidzie na telefonie ramki leżą na całym ekranie od (0, 0), a nagłówek i nawigacja stoją
+   nad nimi. Wtedy Chromium przewija stronę w ramce jak stronę, a nie jak pole w stronie. Nawigacja ma tło paska jak dotąd, więc lista kończy się w tym samym
+   miejscu co wcześniej. Atlas i puste ekrany stoją dalej między nagłówkiem a nawigacją (--km-glowa-h, --km-dol-h liczy app.js). */
+@media (max-width: 759px) {
+  html.korzen, html.korzen body { overscroll-behavior: auto; }
+  html.korzen main { position: fixed; inset: 0; z-index: 0; }
+  html.korzen body.okno main { margin-bottom: 0; }
+  html.korzen .glowa { position: fixed; top: 0; left: 0; right: 0; z-index: 2; }
+  html.korzen .dol { position: fixed; left: 0; right: 0; bottom: 0; background-color: var(--tlo-pasa); }
+  html.korzen .podwidok[data-p="atlas"] { top: var(--km-glowa-h, 0px); bottom: var(--km-dol-h, 0px); }
+  html.korzen .pusto { inset: var(--km-glowa-h, 0px) 0 var(--km-dol-h, 0px); }
+}
+/* Ściąga „i” od trzeciego dnia używania (od 29.10.2026, app.js, „ściąga”). Kółko „i” i krzyżyk to szkło jak pozostałe okrągłe przyciski: kółko 40 px w polu 48 px,
+   z włoskiem, jasną krawędzią i cieniem; pod kursorem rośnie o 6%, wciśnięte o 10%. Znak #0066cc na bieli 5,6:1, w ciemnym #409cff na #2c2c2e. Okienko i każda karta mają
+   ramkę (włosek), karta jest o stopień ciemniejsza od okienka, a znaki gestów stoją w kółkach 32 px. Na szerokim ekranie (od 760 px) kółka nie ma: gesty są dotykowe. */
+:root { --sciaga-karta: #f5f5f7; --sciaga-znak: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --sciaga-karta: #1c1c1e; --sciaga-znak: #2c2c2e; } }
+.gesty, .sciaga-x { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; margin: 0; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--akcent-tekst); cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.sciaga-x { color: var(--tekst2); }
+.gesty::before, .sciaga-x::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background-color: var(--przycisk); background-image: var(--g3d); box-shadow: var(--c3d);
+  transition: transform 320ms cubic-bezier(.3, 1.7, .5, 1); }
+.gesty > svg, .sciaga-x > svg { position: relative; display: block; }
+@media (hover: hover) { .gesty:hover::before, .sciaga-x:hover::before { transform: scale(1.06); } }
+.gesty:active::before, .sciaga-x:active::before { transform: scale(1.1); transition-duration: 80ms; }
+.gesty[aria-expanded="true"]::before { box-shadow: 0 0 0 2px var(--tlo), 0 0 0 4px var(--akcent), var(--c3d); }
+.gesty:focus-visible, .sciaga-x:focus-visible { outline: none; }
+.gesty:focus-visible::before, .sciaga-x:focus-visible::before { box-shadow: 0 0 0 2px var(--tlo), 0 0 0 4px var(--akcent); }
+@media (min-width: 760px) { .gesty, .sciaga { display: none !important; } }
+.sciaga { position: fixed; z-index: 50; left: 0; top: 0; width: min(360px, calc(100vw - 24px)); display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+  border: 1px solid var(--wlos); border-radius: 22px; background: var(--strona); color: var(--tekst); box-shadow: 0 2px 6px var(--cien), 0 16px 48px var(--cien-mocny); outline: none; }
+.sciaga-gora { flex: none; display: flex; justify-content: flex-end; padding: 8px 8px 0; cursor: grab; touch-action: none; }
+.sciaga-tresc { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; display: grid; gap: 20px; padding: 0 16px 32px; }
+.sciaga-tresc::-webkit-scrollbar { display: none; }
+.sciaga h2 { margin: 0 0 8px 4px; font-size: 13px; font-weight: 600; line-height: 16px; color: var(--tekst2); }
+.sciaga ul { list-style: none; margin: 0; padding: 0 12px; border: 1px solid var(--wlos); border-radius: 14px; background: var(--sciaga-karta); }
+.sciaga li { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 0; font-size: 16px; line-height: 20px; }
+.sciaga li + li { border-top: 1px solid var(--wlos); }
+.sciaga li b { display: block; font-weight: 600; }
+.sciaga li .skutek { display: block; font-size: 15px; line-height: 20px; color: var(--tekst2); }
+.sciaga-znak { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sciaga-znak); box-shadow: inset 0 0 0 1px var(--wlos); color: var(--akcent); }
+.sciaga-znak > svg { display: block; }
+.sciaga-uchwyt { position: absolute; right: 2px; bottom: 2px; width: 32px; height: 32px; display: grid; place-items: center; color: var(--tekst2); cursor: nwse-resize; touch-action: none; }

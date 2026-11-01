@@ -393,9 +393,10 @@
     await czekaj(400);
     // Nagłówek w jednym rzędzie (od 19.10.2026): logo, napis „Kasiomobile®” i asystent na jednej osi (od 24.10.2026 bez godziny i ściągi).
     const srodek = (e) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
-    const czesci = ['.glowa .logo', '.glowa h1 svg.napis', '#czat-otworz'].map((s) => document.querySelector(s)).filter((e) => e && e.getClientRects().length);
+    // Od 27.10.2026 wieczorem na telefonie przycisk asystenta pływa nad stroną (czat.css, .czat-plywak), więc w rzędzie nagłówka stoją tylko logo i napis.
+    const czesci = ['.glowa .logo', '.glowa h1 svg.napis', '#czat-otworz:not(.czat-plywak)'].map((s) => document.querySelector(s)).filter((e) => e && e.getClientRects().length);
     const sr = czesci.map(srodek);
-    w.naglowekJedenRzad = czesci.length === 3 && Math.max(...sr) - Math.min(...sr) < 2;
+    w.naglowekJedenRzad = czesci.length === (document.querySelector('#czat-otworz.czat-plywak') ? 2 : 3) && Math.max(...sr) - Math.min(...sr) < 2;
     // Wcięcia z paddingu, w którym naprawdę stoją: sonda env() na starcie testu dawała w WKWebView 0 (symulator, 19.10.2026).
     // Od 26.10.2026 nad rzędem stoi połowa górnego wcięcia i 8 px, a pod nim samo 8 px, więc wcięcie to dwa razy górny padding bez 8 px.
     const gl = document.querySelector('.glowa'), dolE = document.querySelector('.dol'), cg = getComputedStyle(gl);
@@ -417,7 +418,15 @@
       const t0 = document.querySelector('.karty [role="tab"]').getBoundingClientRect(), kol = dk.querySelector('.katalog > div').getBoundingClientRect();
       const z = (v) => Math.round(v * 10) / 10;
       w.wyrownanie = { logo: z(document.querySelector('#logo img').getBoundingClientRect().left - rs.left - parseFloat(cs.paddingLeft)),
-        prawo: z(kolka[kolka.length - 1].getBoundingClientRect().right - 4 - rs.right + parseFloat(cs.paddingRight)), zakladki: z(t0.left - kol.left) };
+        // Pływający przycisk stoi w miejscu dwóch skrajnych kolumn siatki, którą strona naprawdę ma (miejsce = 2 kolumny i rynna rzędów), a nie na prawej krawędzi nagłówka:
+        // kółko ma całe piksele i 48–56 px, a gdy miejsce jest węższe niż 48 px, stoi przy marginesie.
+        prawo: (() => {
+          const pl = kolka[kolka.length - 1], rp = pl.getBoundingClientRect();
+          if (!pl.classList.contains('czat-plywak')) return z(rp.right - 4 - rs.right + parseFloat(cs.paddingRight));
+          const trp = rs.right - parseFloat(cs.paddingRight), tlw = rs.left + parseFloat(cs.paddingLeft), rz = document.querySelector('.karty'), rynna = (rz && parseFloat(getComputedStyle(rz).columnGap)) || 12;
+          const miejsce = 2 * ((trp - tlw - 11 * rynna) / 12) + rynna, d = Math.round(Math.max(48, Math.min(56, miejsce))), przes = Math.max(0, (miejsce - d) / 2);
+          return z(rp.left + rp.width / 2 - (Math.round(trp - d - przes) + d / 2));
+        })(), zakladki: z(t0.left - kol.left) };
       w.tytulStrony = [...dk.querySelectorAll('h1')].some((h) => h.getClientRects().length > 0);
     } catch (e) { w.wyrownanie = { blad: String(e) }; }
     // Nawigacja (od 25.10.2026): cztery zakładki z ikoną i nazwą, a pod nimi pigułki wybranej zakładki, jeden blok nad treścią
@@ -429,7 +438,7 @@
     w.zakladki = t.map((b) => (b ? b.textContent.trim() : '')).join(',');
     w.zakladkiIkony = t.filter((b) => b && b.querySelector('svg.znak use') && b.querySelector('svg.znak').getBoundingClientRect().width >= 20).length;
     w.dolNetto = Math.round(rd.height);
-    const rt = t.filter(Boolean).map((b) => b.getBoundingClientRect()), rp = [...document.querySelectorAll('.podkarty .podwidoki:not([hidden]) [role="radio"]')].map((b) => b.getBoundingClientRect());
+    const rt = t.filter(Boolean).map((b) => b.getBoundingClientRect()).sort((a, b) => a.left - b.left), rp = [...document.querySelectorAll('.podkarty .podwidoki:not([hidden]) [role="radio"]')].map((b) => b.getBoundingClientRect()).sort((a, b) => a.left - b.left);
     const rowne = (a) => a.length < 2 || Math.max(...a.map((q) => q.width)) - Math.min(...a.map((q) => q.width)) <= 0.5;
     if (innerWidth < 760) {
       const ss = getComputedStyle(document.querySelector('.siatka-sonda')), sx0 = parseFloat(ss.paddingLeft), sx1 = innerWidth - parseFloat(ss.paddingRight);
@@ -489,11 +498,11 @@
       w.poradnikNaZewnatrz = [...pr.querySelectorAll('a[href^="http"]')].every((a) => a.target === '_blank');
       maleCele(pr, 'Poradnik, strona');
       // Najpierw skrót, potem całość (od 23.10.2026, poradnik.js w misji). Etap 1 zaczyna od skrótu, a „Czytaj całość” odsłania
-      // resztę w tym samym miejscu; etap 2 (ta sama karta) pamięta to do końca sesji. Strona sprzed tej zmiany nie ma przycisku.
+      // resztę w tym samym miejscu; etap 2 (nowe otwarcie aplikacji) znowu zaczyna od skrótu (app.js zeruje „poradnik-calosc” przy każdym starcie). Strona sprzed tej zmiany nie ma przycisku.
       const calosc = pr.querySelector('#calosc');
       if (!calosc) w.poradnikSkrot = 'strona bez skrótu';
       else if (ETAP === 1) w.poradnikSkrot = calosc.hidden && Boolean(pr.querySelector('#czytaj-calosc'));
-      else w.poradnikPamieta = !calosc.hidden;
+      else w.poradnikOdSkrotu = calosc.hidden;
       await krok('poradnik');
       if (calosc && ETAP === 1) {
         pr.querySelector('#czytaj-calosc').click();
@@ -512,11 +521,12 @@
       ph.focus();
       ph.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true }));
       await czekaj(200);
-      const cp = document.querySelector('.cofnij-zakladki'), cb = document.querySelector('#cofnij-zakladki'), rc = cb.getBoundingClientRect();
+      // Od 28.10.2026 „Cofnij” po przestawieniu nie wyskakuje, a kolejność oddaje Ctrl+Z.
+      const cp = document.querySelector('.cofnij-zakladki');
       w.pigulkiPoAlt = pig();
-      w.pigulkiCofnijNaWierzchu = !cp.hidden && document.elementFromPoint(rc.left + rc.width / 2, rc.top + rc.height / 2) === cb;
+      w.pigulkiBezCofnij = cp.hidden;
       if (!SZYBKO) await krok('pigulki-cofnij');
-      cb.click();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
       await czekaj(200);
       w.pigulkiPoCofnij = pig() === przedP && cp.hidden;
     }
@@ -530,11 +540,10 @@
       pierwsza.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true }));
       await czekaj(200);
       w.kolejnoscPoAlt = kol();
-      w.cofnijWidac = !document.querySelector('.cofnij-zakladki').hidden;
+      w.bezCofnij = document.querySelector('.cofnij-zakladki').hidden;
       zmierz();
-      maleCele(document, 'Cofnij', document.querySelector('.cofnij-zakladki'));
       await krok('cofnij');
-      document.querySelector('#cofnij-zakladki').click();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
       await czekaj(200);
       w.kolejnoscPoCofnij = kol();
       w.cofnijSchowane = document.querySelector('.cofnij-zakladki').hidden;
