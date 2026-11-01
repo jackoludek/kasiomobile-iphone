@@ -817,9 +817,10 @@
   // RootScrollerController w Blink). Dlatego na Androidzie na telefonie (do 759 px) ramki leżą na całym ekranie, a nagłówek i nawigacja stoją nad nimi z tym samym
   // tłem co dotąd (styl.css, „Lista jak strona”). Strona w ramce dostaje u góry miejsce na nagłówek (--km-glowa), u dołu na nawigację (--km-dol), a okna w stronie
   // zaczynają się pod pasem aparatu (--km-g). Atlas (strona z sieci, bez naszego stylu) stoi dalej między nagłówkiem a nawigacją. iPhone i komputer bez zmian.
-  // Próba: w menu pod logo „Przewijanie” (Jak w przeglądarce, Jak dotąd), wybór w pamięci telefonu; ?korzen=1 i ?korzen=0 w adresie dla testów.
+  // Do 1.11.2026 próba w menu pod logo („Przewijanie”); teraz Android zawsze jak strona, a ?korzen=1 i ?korzen=0 w adresie zostają dla testów.
   const korzenZAdresu = new URLSearchParams(location.search).get('korzen');
-  let korzen = korzenZAdresu !== null ? korzenZAdresu === '1' : SKAD === 'Android' && pamiec.czytaj('przewijanie', 'strona') !== 'ramka';
+  let korzen = korzenZAdresu !== null ? korzenZAdresu === '1' : SKAD === 'Android';
+  pamiec.usun('przewijanie');
   const waskiKorzen = matchMedia('(max-width: 759px)');
   const sondaGory = el('div', { 'aria-hidden': 'true', style: 'position:absolute;visibility:hidden;height:0;padding-top:var(--km-gora,0px);pointer-events:none' });
   document.body.append(sondaGory);
@@ -1696,20 +1697,8 @@
         menuOtomoto.append(b);
       }
     }
-    // Próba przewijania (od 29.10.2026, „Lista jak strona”): Jacek porównuje na telefonie, jak przewija się lista jako strona, a jak w ramce, jak dotąd.
-    if (SKAD === 'Android' || korzenZAdresu !== null) {
-      menuOtomoto.append(el('p', { class: 'menu-otomoto-tytul', 'aria-hidden': 'true', text: 'Przewijanie (próba)' }));
-      for (const [k, nazwa] of [['strona', 'Jak w przeglądarce'], ['ramka', 'Jak dotąd']]) {
-        const b = el('button', { type: 'button', role: 'menuitemradio', 'aria-checked': String((k === 'strona') === korzen), 'data-pz': k }, el('span', { class: 'menu-otomoto-nazwa', text: nazwa }));
-        b.addEventListener('click', () => {
-          korzen = k === 'strona';
-          pamiec.zapisz('przewijanie', k);
-          ustawSiatke();
-          for (const x of menuOtomoto.querySelectorAll('[data-pz]')) x.setAttribute('aria-checked', String(x.dataset.pz === k));
-        });
-        menuOtomoto.append(b);
-      }
-    }
+    // Próba przewijania „Przewijanie (próba)” stała tu od 29.10 do 1.11.2026. Jacek, 1.11.2026: „ostatnie dwie pozycje są na temat przewijania
+    // ekranu … oczywiście ja nie chcę”. Android przewija listę jak stronę (korzen), bez wyboru.
     document.body.append(menuOtomoto);
     const r = zrodlo.getBoundingClientRect(), m = menuOtomoto.getBoundingClientRect();
     menuOtomoto.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - m.width - 8))) + 'px';
@@ -1735,12 +1724,13 @@
   // ---------------------------------------------------------------- próby wyglądu nawigacji (od 27.10.2026)
   // Jacek: „te kolorki … nie jest over the top”, „zróbmy kilka wersji tej aplikacji, żebym mógł wybrać”. Na Androidzie Jacka menu pod logo ma wybór wyglądu
   // dolnej nawigacji: Obecny i cztery próby (styl.css, „Próby wyglądu nawigacji”). Wybór leży w pamięci telefonu, a adres z ?wyglad=N ustawia go w przeglądarce
-  // (zrzuty i testy). U Kasi (strona w sieci, iPhone) wyboru nie ma i zostaje „Obecny”. Po decyzji Jacka przegrane próby i ten wybór znikną.
+  // (zrzuty i testy). Od 1.11.2026 wybór stoi wszędzie, także na iPhonie i iPadzie (Jacek: „pod przyciskiem Kasia mobile wcale nie ma wyboru kolorów
+  // menu … tych futur które są na Androida tylko”). Po decyzji Jacka przegrane próby i ten wybór znikną.
   const WYGLADY = [['', 'Obecny'], ['1', '1: Kolor na wybranej'], ['2', '2: Jeden niebieski'], ['3', '3: Bez koloru'], ['4', '4: Kolorowe ikony'], ['5', '5: Szkło jak w Kiro']];
   const wygladZAdresu = new URLSearchParams(location.search).get('wyglad');
   let wyglad = String(wygladZAdresu !== null ? wygladZAdresu : pamiec.czytaj('wyglad', ''));
   if (!WYGLADY.some(([k]) => k === wyglad)) wyglad = '';
-  const pokazWybor = SKAD === 'Android' || wygladZAdresu !== null;
+  const pokazWybor = true;
   // Wskaźnik: trójkąt między rzędem zakładek a rzędem pigułek, pod środkiem wybranej zakładki. Liczony z układu (offsetLeft), nie z prostokątów, żeby
   // przesuwanie i powiększenie zakładki go nie rozedrgało.
   function ustawWskaznik() {
