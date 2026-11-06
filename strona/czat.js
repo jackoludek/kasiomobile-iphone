@@ -1544,7 +1544,9 @@
     // schowany od nocy, kiedy klucza jeszcze nie było, choć komputer dostał go kilka godzin później; Jacek: „rozpoznał moje pisanie,
     // ale nie gadanie”). W pamięci stoi chwila odmowy, a dawne „false” nic już nie chowa.
     const BEZ_GLOSU_MS = 20 * 60000;
-    const glosWolno = () => { const v = pamiec.czytaj('glos', null); return !(typeof v === 'number' && Date.now() - v < BEZ_GLOSU_MS); };
+    let wlasnyZly = false;
+    const wlasnyKlucz = () => (!wlasnyZly && typeof window.SONIOX_KLUCZ === 'string' && window.SONIOX_KLUCZ.length > 20 ? window.SONIOX_KLUCZ : '');
+    const glosWolno = () => { if (wlasnyKlucz()) return true; const v = pamiec.czytaj('glos', null); return !(typeof v === 'number' && Date.now() - v < BEZ_GLOSU_MS); };
     const zapiszGlos = (jest) => pamiec.zapisz('glos', jest ? true : Date.now());
     const mozeNagrywac = () => Boolean(natywny)
       || Boolean(o.mikrofon && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder && window.WebSocket);
@@ -1562,7 +1564,11 @@
       else if (!n && /^(Włączam|Słucham)/.test(stanL.textContent)) stan('');
       halStan();
     }
+    // Własny klucz Soniox w aplikacji (od 6.11.2026, Jacek przez Nadzór: rozpoznawanie mowy ma iść prosto z telefonu do Soniox, bez komputera,
+    // bo poza domem połączenie z komputerem często nie działa). Daje go kanal.js z budowy APK i IPA (window.SONIOX_KLUCZ), a strona w sieci go
+    // nie ma i dalej prosi komputer. Gdy Soniox odrzuci własny klucz (401), do zamknięcia strony idzie dawna droga przez komputer.
     async function klucz() {
+      if (wlasnyKlucz()) { glos.konf = null; return wlasnyKlucz(); }
       const k = pamiec.czytaj('klucz', null);
       if (k && k.klucz && Date.parse(k.do) - Date.now() > 120000) return k.klucz;
       const d = await zapytaj({ co: 'klucz' }, KLUCZ_MS);
@@ -1634,7 +1640,7 @@
       let d;
       try { d = JSON.parse(tekst); } catch { return; }
       if (d.error_code) {
-        if (d.error_code === 401) pamiec.zapisz('klucz', null);
+        if (d.error_code === 401) { pamiec.zapisz('klucz', null); wlasnyZly = true; }
         glosKoniec(ZDANIA.soniox);
         return;
       }
