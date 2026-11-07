@@ -33,6 +33,8 @@
 'use strict';
 (() => {
   const SERWER = 'https://ntfy.sh', SONIOX = 'wss://stt-rt.soniox.com/transcribe-websocket';
+// Autor rozmowy (od 7.11.2026, Jacek: urządzenia Apple „To będzie Kasia. Jacek jest na Androidzie i na Windowsie … na Linuxie”).
+const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== 'komputer' && /iPhone|iPad|Macintosh/.test(navigator.userAgent)) ? 'Kasia' : 'Jacek');
   const CZEKAJ_MS = 90000, KLUCZ_MS = 20000, NAJWIECEJ = 40, NOWA_ROZMOWA_MS = 6 * 3600 * 1000;
   // Nazwy zakładek w bierniku, do przycisku „Pokaż …” pod odpowiedzią. Od 19.10.2026 „katalog” to Oferty (do 25.10.2026 Ogłoszenia, razem z dawnym
   // „Nowe”, które zostaje dla starych odpowiedzi w pamięci), a „modele” to Podium (do 25.10.2026 Katalag). Od 25.10.2026 „kredyt” to Finanse, „historia”
@@ -81,7 +83,9 @@
     czat: '<path d="M5.5 4h13a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-7l-4.5 3.4v-3.4h-1.5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8.5" cy="10.25" r="1.25"/><circle cx="12" cy="10.25" r="1.25"/><circle cx="15.5" cy="10.25" r="1.25"/>',
     zamknij: '<path d="M6.7 5.3 12 10.6l5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3z"/>',
     wyslij: '<path d="M12 4.2 18.8 11l-1.4 1.4L13 8v11.8h-2V8l-4.4 4.4L5.2 11z"/>',
-    mikrofon: '<path d="M12 3.5a3.4 3.4 0 0 0-3.4 3.4v5a3.4 3.4 0 0 0 6.8 0v-5A3.4 3.4 0 0 0 12 3.5zM18 11.9h-1.9a4.1 4.1 0 0 1-8.2 0H6a6 6 0 0 0 5.1 5.9v2.7h1.8v-2.7A6 6 0 0 0 18 11.9z"/>',
+    stop: '<rect x="7" y="7" width="10" height="10" rx="2.2"/>',
+    // Mikrofon jak w Kiro na Telefonie (od 7.11.2026, Jacek: „Daj taki mikrofon, jak jest tutaj, dokładnie”): ten sam rysunek kreską.
+    mikrofon: '<path d="M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3zM6.5 11a5.5 5.5 0 0 0 11 0M12 16.5v4M9 20.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
     zewnatrz: '<path d="M13.5 4H20v6.5h-2V7.4l-7.3 7.3-1.4-1.4L16.6 6h-3.1zM5 6.5h6v2H6v9.5h9.5v-5h2v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z"/>',
     dalej: '<path d="M9.3 6.3 15 12l-5.7 5.7-1.4-1.4 4.3-4.3-4.3-4.3z"/>',
     historia: '<path fill-rule="evenodd" d="M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zm0 1.9a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2zM11.05 7.5h1.9v4.45l3.3 1.95-.97 1.64-4.23-2.5z"/>',
@@ -231,8 +235,12 @@
       if (t && ms) zegarStanu = setTimeout(() => stan(''), ms);
     }
     function przyciski() {
-      wyslijB.disabled = pracuje || !pole.value.trim();
-      wyslijB.setAttribute('aria-label', edycja.aktywna ? 'Zapisz pytanie' : pracuje ? 'Komputer jeszcze odpowiada' : 'Wyślij');
+      // W trakcie odpowiedzi Wyślij jest kwadratem Stop (od 7.11.2026, niżej „zatrzymaj”).
+      const stopTeraz = pracuje && !edycja.aktywna;
+      wyslijB.disabled = stopTeraz ? false : pracuje || !pole.value.trim();
+      wyslijB.setAttribute('aria-label', edycja.aktywna ? 'Zapisz pytanie' : stopTeraz ? 'Zatrzymaj odpowiedź' : 'Wyślij');
+      ikonaWyslij();
+      korzen.classList.toggle('czat-pracuje', pracuje);
       mikB.disabled = pracuje;
       nowaB.disabled = pracuje || !historia.length;
       // Przy zmianie pytań na stałe wychodzi się przez „Gotowe” (jak dawniej, gdy rząd Rozmów chował się w edycji), więc Rozmowy stoją wtedy przygaszone.
@@ -387,7 +395,7 @@
       gotowe.addEventListener('click', () => edytujPytania(false));
       return el('div', { class: 'czat-pusto' }, el('p', { text: ZDANIA.edycja }), rzad, el('div', { class: 'czat-pyt-akcje' }, dodajP, gotowe));
     }
-    function ikonaWyslij() { wyslijB.innerHTML = ikona(edycja.aktywna ? 'ptak' : 'wyslij'); korzen.classList.toggle('edytuje', edycja.aktywna); }
+    function ikonaWyslij() { const n = edycja.aktywna ? 'ptak' : pracuje ? 'stop' : 'wyslij'; if (wyslijB.dataset.ikona !== n) { wyslijB.dataset.ikona = n; wyslijB.innerHTML = ikona(n); } korzen.classList.toggle('edytuje', edycja.aktywna); }
     function edytujPytania(wl) {
       if (pracuje) return;
       edycja.aktywna = wl;
@@ -590,6 +598,7 @@
       forma.style.visibility = '';
       forma.inert = false;
       przyciski();
+      rzadDymka = null;
       if (historia.length) naDol(); else lista.scrollTop = edycja.aktywna ? pustoST : 0;
     }
     const wsteczHistorii = () => (widokHistorii === 'historia' ? rysuj() : pokazHistorie('historia'));
@@ -611,7 +620,7 @@
     function odloz() {
       if (!historia.length) return;
       const a = archiwum();
-      a.unshift({ id: pamiec.czytaj('rozmowa', null) || losowe(), czas: pamiec.czytaj('ostatnio', Date.now()), wpisy: historia });
+      a.unshift({ id: pamiec.czytaj('rozmowa', null) || losowe(), autor: autorZ(o.skad), czas: pamiec.czytaj('ostatnio', Date.now()), wpisy: historia });
       zapiszListe('historia', a);
     }
     function odNowa() {
@@ -704,6 +713,15 @@
     function cofnijRuch(ponow) {
       const k = (ponow ? ruchy.naprzod : ruchy.wstecz).pop();
       if (!k) return false;
+      // Usunięty dymek rozmowy (od 7.11.2026): wraca na swoje miejsce, a Ponów zdejmuje go znowu.
+      if (k.dymek) {
+        if (ponow) historia.splice(k.dymek.i, 1); else historia.splice(k.dymek.i, 0, k.dymek.w);
+        zapiszHistorie();
+        (ponow ? ruchy.wstecz : ruchy.naprzod).push(k);
+        pokazCofnijCzat(null);
+        if (!widokHistorii) rysuj();
+        return true;
+      }
       // Krok listy pytań na stałe: wraca cała lista sprzed zmiany albo po niej.
       if (k.pytania) {
         zapiszPytania(ponow ? k.pytania.po : k.pytania.przed);
@@ -843,7 +861,7 @@
       const pytania = r.wpisy.filter((x) => x.kto === 'ja'), { prawo, lewo } = AKCJE[n];
       const b = el('button', { type: 'button', class: 'czat-rozmowa' },
         el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? pytania[0].tekst : 'Rozmowa' }),
-        el('span', { class: 'czat-rozmowa-kiedy', text: `${n === 'kosz' ? zniknie(r.usunieto) : n === 'historia' || n === 'archiwum' ? kiedyKrotko(r.czas) : kiedy(r.czas)} · ${pytan(pytania.length)}` }));
+        el('span', { class: 'czat-rozmowa-kiedy', text: `${r.autor || autorZ(o.skad)} · ${n === 'kosz' ? zniknie(r.usunieto) : n === 'historia' || n === 'archiwum' ? kiedyKrotko(r.czas) : kiedy(r.czas)} · ${pytan(pytania.length)}` }));
       const strona = (cel, klasa) => (cel ? el('span', { class: klasa, html: ikona(CEL[cel].ikona, 22) }, el('span', { text: CEL[cel].napis })) : null);
       const w = el('div', { class: 'czat-wiersz', style: `--k-prawo:${prawo ? CEL[prawo].kolor : 'transparent'};--k-lewo:${lewo ? CEL[lewo].kolor : 'transparent'}` },
         el('div', { class: 'czat-pod', 'aria-hidden': 'true' }, strona(prawo, 'czat-pod-l'), strona(lewo, 'czat-pod-p')), b);
@@ -876,6 +894,37 @@
       const d = new Date(t), dzis = new Date(), godz = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
       if (Date.now() - t < 2 * 864e5 && (d.toDateString() === dzis.toDateString() || d.toDateString() === new Date(dzis - 864e5).toDateString())) return godz;
       return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) + ', ' + godz;
+    }
+    // Wspólne rozmowy (od 7.11.2026): plik od komputera z kanału „<kanał>-rozmowy”, najwyżej raz na minutę. W Rozmowach stoją te, których to urządzenie nie ma,
+    // pod nazwą autora; stuknięcie kopiuje rozmowę tutaj i otwiera ją, a komputer pamięta ją po identyfikatorze, więc da się dopytać dalej.
+    const wspolneR = { lista: [], czas: 0, znak: '' };
+    async function pobierzWspolne(gdy) {
+      if (Date.now() - wspolneR.czas < 60000) return;
+      wspolneR.czas = Date.now();
+      try {
+        const r = await fetch(`${SERWER}/${o.kanal}-rozmowy/json?poll=1&since=12h`, { cache: 'no-store' });
+        const linie = (await r.text()).trim().split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((w) => w && w.event === 'message' && w.attachment && w.attachment.url);
+        const ost = linie[linie.length - 1];
+        if (!ost) return;
+        const d = await (await fetch(ost.attachment.url, { cache: 'no-store' })).json();
+        if (!d || !Array.isArray(d.rozmowy) || String(d.czas) === wspolneR.znak) return;
+        wspolneR.lista = d.rozmowy;
+        wspolneR.znak = String(d.czas);
+        gdy();
+      } catch { /* bez sieci zostaje ostatnia lista */ }
+    }
+    function wierszWspolny(r) {
+      const pytania = r.wpisy.filter((x) => x.kto === 'ja');
+      const b = el('button', { type: 'button', class: 'czat-rozmowa' }, el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? pytania[0].tekst : 'Rozmowa' }),
+        el('span', { class: 'czat-rozmowa-kiedy', text: `${r.autor} · ${kiedyKrotko(r.czas)} · ${pytan(pytania.length)}` }));
+      b.addEventListener('click', () => {
+        const kopia = { id: r.id, autor: r.autor, czas: r.czas, wpisy: r.wpisy.map((x) => ({ kto: x.kto === 'ja' ? 'ja' : 'ai', tekst: String(x.tekst || '') })) };
+        const l = czytajListe('historia');
+        l.unshift(kopia);
+        zapiszListe('historia', l);
+        wrocDo('historia', kopia);
+      });
+      return el('div', { class: 'czat-wiersz' }, b);
     }
     // Dwa widoki listy: „historia” (przycisk Rozmowy) i „schowek” (dawne Archiwum i Kosz: sekcje Zachowane i Kosz, „Opróżnij” przy Koszu).
     function pokazHistorie(n = 'historia', zostan = false) {
@@ -915,6 +964,13 @@
         tresc.push(el('div', { class: 'czat-schowki' }, chip('Archiwum', 'archiwum', arch, 'archiwum'), chip('Kosz', 'kosz', kosz, 'kosz')));
         if (!a.length) tresc.push(el('p', { class: 'czat-pusto', text: PUSTE.historia }));
         else for (const g of grupyDni(a)) tresc.push(el('h4', { class: 'czat-grupa', text: g.nazwa }), el('div', { class: 'czat-rozmowy' }, ...g.wiersze.map((r) => wierszRozmowy('historia', r))));
+        const znane = new Set([pamiec.czytaj('rozmowa', null), ...[...a, ...czytajListe('archiwum'), ...czytajListe('kosz')].map((r) => r.id)]);
+        const obce = wspolneR.lista.filter((r) => r && r.id && !znane.has(r.id) && Array.isArray(r.wpisy) && r.wpisy.length);
+        for (const kto of ['Jacek', 'Kasia']) {
+          const l = obce.filter((r) => r.autor === kto);
+          if (l.length) tresc.push(el('h4', { class: 'czat-grupa', text: kto === autorZ(o.skad) ? 'Twoje z innych urządzeń' : kto === 'Jacek' ? 'Rozmowy Jacka' : 'Rozmowy Kasi' }), el('div', { class: 'czat-rozmowy' }, ...l.map(wierszWspolny)));
+        }
+        pobierzWspolne(() => { if (widokHistorii === 'historia') pokazHistorie('historia', true); });
       }
       lista.replaceChildren(...tresc);
       // W listach pola pytania nie ma, więc lista sięga do dołu (od 28.10.2026: przyciski stoją w pasku u góry i nic pod nimi się nie rusza; do tego dnia pole
@@ -992,7 +1048,7 @@
         czeka.set(id, { ok, zegar, czas, q });
         zapiszCzekajace();
         sluchaj();
-        fetch(`${SERWER}/${o.kanal}-pytanie`, { method: 'POST', body: JSON.stringify(Object.assign({ id, skad: o.skad || '' }, tresc)), cache: 'no-store' })
+        fetch(`${SERWER}/${o.kanal}-pytanie`, { method: 'POST', body: JSON.stringify(Object.assign({ id, skad: o.skad || '', autor: autorZ(o.skad) }, tresc)), cache: 'no-store' })
           .then((r) => { if (!r.ok) throw new Error('ntfy.sh ' + r.status); })
           .catch(() => {
             const c = czeka.get(id);
@@ -1004,6 +1060,67 @@
             if (!czeka.size) zamknijStrumien();
           });
       });
+    }
+    // Stop (od 7.11.2026, Jacek: „musi być opcja … do przerwania toku myślenia. Jak się to źle wpisało, to po chuj ma mielić. Zatrzymujemy”):
+    // w trakcie odpowiedzi Wyślij jest kwadratem. Telefon przestaje czekać (późniejsza odpowiedź przepada, bo jej nie ma w „czeka”), a pytanie wraca
+    // do pola do poprawy. Komputer kończy swoje w tle; następne pytanie idzie z polem popraw, więc komputer zapomina w tej rozmowie poprzednie.
+    let poprawka = 0;
+    function zatrzymaj() {
+      for (const [id, c] of [...czeka]) { if (!c.q) continue; czeka.delete(id); clearTimeout(c.zegar); c.ok({ zatrzymane: true }); }
+      zapiszCzekajace();
+      if (!czeka.size) zamknijStrumien();
+      uz('stop', '');
+    }
+    // Pięć podstaw czatu (reguła czat-z-ai-podstawy, od 7.11.2026; Jacek: „opcja do edytowania ostatniego zapytania”): dymek widać w całości,
+    // a stuknięcie dymka pokazuje pod nim rząd: Kopiuj, Popraw (własne pytanie), Usuń i Kopiuj rozmowę. Popraw wkłada pytanie do pola, a ono
+    // i wszystko po nim znika z rozmowy; komputer zapomina tyle pytań (pole popraw przy następnym). Usuń zdejmuje dymek z „Cofnij” na 6 s i Ctrl+Z.
+    // Stop jest w miejscu Wyślij (wyżej). Do tego dnia pod ostatnim pytaniem stał sam ołówek.
+    let rzadDymka = null;
+    function zamknijRzad() { if (rzadDymka) { rzadDymka.remove(); rzadDymka = null; } }
+    function kopiujTekst(t, b) {
+      const gotowe = () => { if (b) b.textContent = 'Skopiowane'; setTimeout(zamknijRzad, 900); };
+      const zapas = () => { const x = el('textarea', { 'aria-hidden': 'true' }); x.value = t; x.style.cssText = 'position:fixed;opacity:0;left:0;top:0'; document.body.append(x); x.select(); try { document.execCommand('copy'); } catch { /* bez schowka */ } x.remove(); gotowe(); };
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(gotowe, zapas); return; } } catch { /* niżej */ }
+      zapas();
+    }
+    const tekstWpisu = (w) => String(w.tekst || w.blad || '').trim();
+    const calaRozmowa = () => historia.map((w) => `${w.kto === 'ja' ? 'Ja' : 'Asystent'}: ${tekstWpisu(w)}`).join('\n\n');
+    function popraw(i) {
+      if (pracuje || !historia[i] || historia[i].kto !== 'ja') return;
+      const t = historia[i].tekst || '', k = historia.slice(i).filter((w) => w.kto === 'ja').length;
+      historia.splice(i);
+      zapiszHistorie();
+      poprawka = (Number(poprawka) || 0) + k;
+      rysuj();
+      pole.value = t;
+      rosnij();
+      przyciski();
+      pole.focus();
+      uz('popraw', String(k));
+    }
+    function usunDymek(i) {
+      if (pracuje || !historia[i]) return;
+      const [w] = historia.splice(i, 1);
+      zapiszHistorie();
+      ruchy.wstecz.push({ dymek: { i, w } });
+      ruchy.naprzod.length = 0;
+      rysuj();
+      pokazCofnijCzat('Cofnij usunięcie dymka');
+      uz('usun-dymek', w.kto);
+    }
+    function pokazRzad(e, i) {
+      const byl = rzadDymka && rzadDymka.parentNode === e;
+      zamknijRzad();
+      if (byl) return;
+      const w = historia[i];
+      const r = el('div', { class: 'czat-dymek-akcje', role: 'group', 'aria-label': 'Ten dymek' });
+      const b = (napis, fn) => { const x = el('button', { type: 'button', class: 'czat-dymek-akcja', text: napis }); x.addEventListener('click', (ev) => { ev.stopPropagation(); fn(x); }); r.append(x); };
+      b('Kopiuj', (x) => kopiujTekst(tekstWpisu(w), x));
+      if (w.kto === 'ja') b('Popraw', () => popraw(i));
+      b('Usuń', () => usunDymek(i));
+      b('Kopiuj rozmowę', (x) => kopiujTekst(calaRozmowa(), x));
+      e.append(r);
+      rzadDymka = r;
     }
     // Ta sama rozmowa dla komputera (pamięta 6 ostatnich pytań), a po 6 godzinach ciszy nowa.
     function rozmowa() {
@@ -1023,11 +1140,22 @@
       const widok = mini && o.widok ? o.widok() : null;
       const wskazano = !czekanie && mini && Boolean(wskaz);
       const wPole = czekanie ? '' : opisDlaKomputera(widok);
-      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '' }, wPole ? { w: wPole } : {}), CZEKAJ_MS, q));
+      const popraw = czekanie ? 0 : Number(poprawka) || 0;
+      if (!czekanie) poprawka = 0;
+      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '' }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), CZEKAJ_MS, q));
       mysli.remove();
       mysli = null;
       pracuje = false;
       przyciski();
+      if (d && d.zatrzymane) {
+        const i = historia.length - 1;
+        if (historia[i] && historia[i].kto === 'ja') { historia.pop(); zapiszHistorie(); }
+        poprawka = (Number(poprawka) || 0) + 1;
+        if (!widokHistorii) rysuj();
+        if (!pole.value.trim()) { pole.value = q; rosnij(); przyciski(); }
+        stan('Zatrzymane. Popraw pytanie i wyślij.', 5000);
+        return;
+      }
       const w = !d ? { kto: 'ai', blad: ZDANIA.brak, q } : d.blad ? { kto: 'ai', blad: String(d.blad), q }
         : { kto: 'ai', tekst: String(d.odpowiedz || ''), linki: Array.isArray(d.linki) ? d.linki.slice(0, 3) : [], pokaz: d.pokaz && BIERNIK[d.pokaz.zakladka] ? d.pokaz : null };
       uz('odpowiedz', w.blad ? 'błąd: ' + String(w.blad).slice(0, 80) : `${(w.tekst || '').length} znaków, odnośników ${(w.linki || []).length}${w.pokaz ? ', pokaż ' + w.pokaz.zakladka : ''}`);
@@ -1200,6 +1328,14 @@
     historiaB.addEventListener('click', () => (widokHistorii ? wsteczHistorii() : pokazHistorie('historia')));
     nowaB.addEventListener('click', nowaRozmowa);
     cofnijC.addEventListener('click', () => cofnijRuch(false));
+    // Stuknięcie dymka rozmowy (nie odnośnika ani przycisku w nim) pokazuje albo chowa jego rząd akcji; stuknięcie obok chowa rząd.
+    lista.addEventListener('click', (e) => {
+      if (widokHistorii || e.target.closest('a, button, .czat-dymek-akcje')) return;
+      const bab = e.target.closest('.czat-babelek'), w = bab && bab.closest('.czat-w');
+      if (!w || w.classList.contains('czat-mysli') || (getSelection && String(getSelection()).length)) { zamknijRzad(); return; }
+      const i = [...lista.querySelectorAll(':scope > .czat-w:not(.czat-mysli)')].indexOf(w);
+      if (i >= 0 && historia[i]) pokazRzad(w, i); else zamknijRzad();
+    });
     cofnijC.addEventListener('animationend', (e) => { if (e.animationName.startsWith('czat-paruje')) pokazCofnijCzat(null); });
     // ---------------------------------------------------------------- wskazanie rzeczy na ekranie (próba od 28.10.2026, tylko małe okno)
     // Jacek o pomyśle „ping” (przeciągnąć wskaźnik na rzecz na ekranie, żeby asystent wiedział, o co chodzi): „Tak, zrób próbę”. Celownik w pasku małego okna, przytrzymany
@@ -1369,7 +1505,7 @@
     // Puszczenie palca po przytrzymaniu przycisku asystenta nie zamyka od razu otwartego małego okna (zasłona dostaje wtedy „click” w niektórych przeglądarkach).
     if (zaslona) zaslona.addEventListener('click', () => { if (Date.now() - otwartoMini < 500 || Date.now() - wskazPoRuchu < 500) return; zamknij(); });
     forma.addEventListener('submit', (e) => { e.preventDefault(); wyslij(pole.value); });
-    wyslijB.addEventListener('click', () => wyslij(pole.value));
+    wyslijB.addEventListener('click', () => (pracuje && !edycja.aktywna ? zatrzymaj() : wyslij(pole.value)));
     pole.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); wyslij(pole.value); } });
     pole.addEventListener('input', () => { rosnij(); przyciski(); });
     korzen.addEventListener('keydown', (e) => {
@@ -1556,11 +1692,11 @@
     function pokazGlos() {
       const n = glos.stan !== 'nic';
       mikB.classList.toggle('nagrywa', n);
-      mikB.setAttribute('aria-label', n ? 'Zakończ i wyślij' : 'Powiedz pytanie');
+      mikB.setAttribute('aria-label', n ? 'Zakończ dyktowanie' : 'Powiedz pytanie');
       mikB.setAttribute('aria-pressed', String(n));
       pole.placeholder = n ? 'Słucham…' : edycja.aktywna ? 'Nowe pytanie na stałe…' : mini ? 'Zapytaj o to, co widzisz…' : 'Zapytaj o auta…';
       if (glos.stan === 'start') stan('Włączam mikrofon…');
-      else if (glos.stan === 'nagrywa') stan(glos.czekaNaKlucz ? 'Słucham. Komputer jeszcze łączy rozpoznawanie mowy…' : 'Słucham. Powiedz „odbiór”, gdy skończysz.');
+      else if (glos.stan === 'nagrywa') stan(glos.czekaNaKlucz ? 'Słucham. Komputer jeszcze łączy rozpoznawanie mowy…' : 'Słucham. Stuknij mikrofon, gdy skończysz, albo powiedz „odbiór”.');
       else if (!n && /^(Włączam|Słucham)/.test(stanL.textContent)) stan('');
       halStan();
     }
@@ -1767,7 +1903,9 @@
       if (typeof d.wiadomosc === 'string') zSoniox(d.wiadomosc);
       if (d.koniec && glos.stan !== 'nic') { if (d.bezWysylki) glos.wyslij = false; glosKoniec(); }
     }
-    mikB.addEventListener('click', () => (glos.stan === 'nic' ? glosStart() : glosStop(true)));
+    // Stuknięcie w trakcie kończy dyktowanie, a tekst zostaje w polu do poprawy i Wyślij (od 7.11.2026, Jacek: „taki sam mikrofon i tak samo … działający …
+    // Wciskam mikrofon, to jest tekst, pozostaje. A nie że od razu się wysyła”). Słowo „odbiór” dalej wysyła od razu; HAL wysyła stuknięciem jak dotąd.
+    mikB.addEventListener('click', () => (glos.stan === 'nic' ? glosStart() : glosStop(false)));
 
     // ---------------------------------------------------------------- HAL (niespodzianka, od 26.10.2026 wieczorem)
     // Jacek: „przytrzymać przez pół sekundy … samą ikonę … tylko oko tego Hala. Podpis Hal jakiś tam, delikatny … Dzień dobry, Jacku albo
@@ -1778,9 +1916,9 @@
     // spośród medium, high i xhigh (asystent.js, „HAL”). HAL mówi głosem urządzenia (speechSynthesis) w języku odpowiedzi, nisko i wolno,
     // a pod okiem stoi napis tego, co mówi. Rozmowa nie trafia do czatu ani do Historii. Mikrofon słucha po angielsku i po polsku.
     const hal = { otwarty: false, korzen: null, oko: null, napis: null, rozmowa: '', pracuje: false, mowi: false, numer: 0 };
-    const halImie = () => (o.skad === 'Android' ? 'Jacek' : 'Kasia');
+    const halImie = () => autorZ(o.skad);
     // Po angielsku HAL mówi do Jacka „Jack” (28.10.2026, Jacek: „mówi: good evening, Jack”).
-    const halImieEn = () => (o.skad === 'Android' ? 'Jack' : 'Kasia');
+    const halImieEn = () => (autorZ(o.skad) === 'Jacek' ? 'Jack' : 'Kasia');
     function halNapis(t) { if (hal.napis) hal.napis.textContent = t || ''; }
     function halStan() {
       if (!hal.korzen) return;
@@ -1791,7 +1929,7 @@
     function halCisza() {
       hal.numer++;
       hal.mowi = false;
-      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch { /* bez głosu */ }
+      try { if (window.AutaGlos) window.AutaGlos.cisza(); else if (window.speechSynthesis) speechSynthesis.cancel(); } catch { /* bez głosu */ }
     }
     function halGlos(j) {
       let g = [];
@@ -1809,8 +1947,21 @@
       halNapis(t);
       halCisza();
       const zdania = (t.match(/[^.!?…]+[.!?…]*/g) || []).map((z) => z.trim()).filter(Boolean);
+      const j = jezyk === 'pl' || jezyk === 'en' ? jezyk : /[ąćęłńóśźż]/i.test(t) ? 'pl' : 'en';
+      // Android (od 7.11.2026): WebView nie ma speechSynthesis, więc mówi TextToSpeech telefonu przez most AutaGlos (Glos.java). Oko pulsuje, póki mówi.
+      let natywny = false; try { natywny = !!(window.AutaGlos && window.AutaGlos.jest()); } catch { /* bez mostu */ }
+      if (zdania.length && natywny) {
+        hal.mowi = true;
+        halStan();
+        let n = 0;
+        try { n = window.AutaGlos.mow(t, j, 0.55, j === 'pl' ? 0.92 : 0.82); } catch { n = 0; }
+        if (!n) { hal.mowi = false; halStan(); return; }
+        const puls = setInterval(() => { if (!hal.mowi || !hal.korzen) { clearInterval(puls); return; } hal.korzen.style.setProperty('--hal-moc', (0.72 + Math.random() * 0.5).toFixed(2)); }, 180);
+        window.__halKoniec = (k) => { if (k === n) { hal.mowi = false; clearInterval(puls); halStan(); } };
+        return;
+      }
       if (!zdania.length || !window.speechSynthesis || typeof SpeechSynthesisUtterance !== 'function') { halStan(); return; }
-      const j = jezyk === 'pl' || jezyk === 'en' ? jezyk : /[ąćęłńóśźż]/i.test(t) ? 'pl' : 'en', numer = hal.numer, g = halGlos(j);
+      const numer = hal.numer, g = halGlos(j);
       hal.mowi = true;
       halStan();
       zdania.forEach((z, i) => {
@@ -1858,7 +2009,9 @@
       const napis = el('p', { class: 'czat-hal-napis', role: 'status', 'aria-live': 'polite' });
       const k = el('section', { class: 'czat czat-hal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'HAL', 'data-stan': 'czeka' },
         el('div', { class: 'czat-hal-gora' }, x),
-        el('div', { class: 'czat-hal-srodek' }, oko, el('p', { class: 'czat-hal-podpis', text: 'HAL 9000' }), napis));
+        el('div', { class: 'czat-hal-srodek' }, oko, el('p', { class: 'czat-hal-podpis', text: 'HAL 9000' }), napis,
+          // Jak z niego wyjść i jak pytać (od 7.11.2026, Jacek: „nie wiem, jak go wywołać … Nie wiem, jak tego odwrócić”).
+          el('p', { class: 'czat-hal-rada', text: 'Stuknij oko i mów, stuknij znowu, żeby wysłać. Krzyżyk albo Wstecz zamyka.' })));
       Object.assign(hal, { korzen: k, oko, napis });
       oko.addEventListener('click', () => {
         if (hal.pracuje) return;

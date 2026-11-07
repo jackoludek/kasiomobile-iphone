@@ -2535,10 +2535,11 @@
       kolejnosc: '<g fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></g>',
       pas: '<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',
       krawedz: '<path d="M5 4.5v15M9 12h10M15.5 8.5 19 12l-3.5 3.5"/>',
+      kolko: '<path d="M18.4 8.2A7.5 7.5 0 1 1 12 4.5"/><path d="M15.5 2.8 18.6 4.6 16.8 7.7"/>',
     };
     const CZESCI = [
       ['Kółko asystenta', [['stuknij', 'Stuknij', 'Rozmowa'], ['przytrzymaj', 'Przytrzymaj', 'Pytanie o to, co widać'], ['przenies', 'Przeciągnij albo rzuć', 'Inne miejsce'],
-        ['potrzasnij', 'Potrząśnij telefonem', 'Schowaj albo pokaż']]],
+        ['potrzasnij', 'Potrząśnij telefonem', 'Schowaj albo pokaż'], ['stuknij', 'Stuknij dymek w rozmowie', 'Kopiuj, popraw, usuń'], ['kolko', 'Narysuj palcem kółko', 'HAL 9000, rozmowa głosem']]],
       ['Oferty', [['wBok', 'Przesuń auto w bok', 'Następne auto'], ['naGore', 'Stuknij zakładkę drugi raz', 'Na górę listy']]],
       ['Zakładki i pas', [['kolejnosc', 'Przytrzymaj zakładkę', 'Zmień kolejność'], ['pas', 'Przytrzymaj pas', 'W górę albo w dół'], ['krawedz', 'Przesuń od lewej krawędzi', 'Wstecz']]],
     ];
