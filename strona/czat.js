@@ -187,6 +187,26 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const historiaB = przycisk('rozmowy', 'Rozmowy', 'czat-historia', 24);
     const tytulL = el('h2', { class: 'czat-tytul', 'aria-hidden': 'true' });
     const nowaB = przycisk('pisz', 'Nowa rozmowa', 'czat-nowa', 24);
+    // Poziom myślenia (od 7.11.2026, Jacek: „mieć wybór poziomu myślenia … czasami chciałbym głębsze odpowiedzi, czasami wolniejsze”): kółko z trzema słupkami
+    // jak zasięg w telefonie, stuknięcie przełącza Szybko, Zwykle i Głęboko (Opus 5.5 z wysiłkiem low, high i xhigh). Wybór zostaje w pamięci urządzenia.
+    const POZIOMY = [['low', 'Szybko', 'Krótko i szybko.'], ['high', 'Zwykle', 'Jak dotąd.'], ['xhigh', 'Głęboko', 'Dłużej myśli, odpowiedź potrwa dłużej.']];
+    let poziom = POZIOMY.some(([k]) => k === pamiec.czytaj('poziom', 'high')) ? pamiec.czytaj('poziom', 'high') : 'high';
+    const poziomB = el('button', { type: 'button', class: 'czat-ikonka czat-poziom' });
+    function ustawPoziom() {
+      const i = POZIOMY.findIndex(([k]) => k === poziom);
+      poziomB.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">' + [[5, 14], [10.5, 10], [16, 6]].map(([x, y], j) => `<rect x="${x}" y="${y}" width="3" height="${19 - y}" rx="1.5" fill="currentColor" opacity="${j <= i ? 1 : 0.28}"/>`).join('') + '</svg>';
+      poziomB.setAttribute('aria-label', `Myślenie: ${POZIOMY[i][1]}. Stuknij, żeby zmienić`);
+      poziomB.dataset.poziom = poziom;
+    }
+    ustawPoziom();
+    dymek(poziomB);
+    poziomB.addEventListener('click', () => {
+      const i = (POZIOMY.findIndex(([k]) => k === poziom) + 1) % POZIOMY.length;
+      poziom = POZIOMY[i][0];
+      pamiec.zapisz('poziom', poziom);
+      ustawPoziom();
+      stan(`Myślenie: ${POZIOMY[i][1]}. ${POZIOMY[i][2]}`, 4000);
+    });
     // Małe okno (od 27.10.2026 wieczorem): ten sam czat w mniejszej postaci po przytrzymaniu przycisku asystenta. U góry napis, o czym pyta (to, co widać
     // na ekranie), przycisk na cały ekran i krzyżyk. W pełnym oknie obu pierwszych nie widać (czat.css, .czat-mini-tylko).
     const miniChip = el('span', { class: 'czat-mini-chip czat-mini-tylko' });
@@ -195,7 +215,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     // Przytrzymanie palcem niesie pinezkę, więc dymek przy nim pokazuje tylko kursor i fokus (dotyk: „wlasne”).
     const wskazB = przycisk('celownik', 'Wskaż rzecz na ekranie', 'czat-wskaz czat-mini-tylko', 24);
     wskazB.dataset.dotyk = 'wlasne';
-    const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null, historiaB, tytulL, miniChip, wskazB, rozwinB, nowaB, zamknijB);
+    const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null, historiaB, tytulL, miniChip, wskazB, rozwinB, poziomB, nowaB, zamknijB);
     const lista = el('div', { class: 'czat-lista', role: 'log', 'aria-live': 'polite', 'aria-label': 'Rozmowa z asystentem' });
     const stanL = el('p', { class: 'czat-stan', role: 'status', hidden: true });
     const pole = el('textarea', { class: 'czat-tekst', rows: '1', maxlength: '600', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
@@ -1189,7 +1209,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       const wPole = czekanie ? '' : opisDlaKomputera(widok);
       const popraw = czekanie ? 0 : Number(poprawka) || 0;
       if (!czekanie) poprawka = 0;
-      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '' }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), CZEKAJ_MS, q));
+      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '', poziom }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), CZEKAJ_MS, q));
       mysli.remove();
       mysli = null;
       pracuje = false;

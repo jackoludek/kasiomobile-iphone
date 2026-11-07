@@ -329,6 +329,9 @@
 .czat-gora .czat-zamknij { grid-column: 11 / span 2; justify-self: center; }
 .czat-gora > .czat-historia { grid-column: 1 / span 2; justify-self: center; }
 .czat-gora > .czat-nowa { grid-column: 9 / span 2; justify-self: center; }
+/* Poziom myślenia (od 7.11.2026): kółko w kolumnach 7 i 8, a tytuł ma przez to cztery kolumny zamiast sześciu. */
+.czat-gora > .czat-poziom { grid-column: 7 / span 2; grid-row: 1; justify-self: center; }
+.czat-gora > .czat-poziom ~ .czat-tytul, .czat-gora > .czat-tytul:has(~ .czat-poziom) { grid-column: 3 / span 4; }
 .czat-gora > .czat-historia, .czat-gora > .czat-nowa, .czat-gora > .czat-zamknij, .czat-gora > .czat-tytul { grid-row: 1; }
 .czat-gora > .czat-ikonka:disabled { opacity: .45; cursor: default; }
 .czat-tytul { grid-column: 3 / span 6; min-width: 0; margin: 0; overflow: hidden; color: var(--cz-tekst); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.3;
