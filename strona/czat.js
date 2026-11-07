@@ -1767,7 +1767,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     // dopiero po połączeniu, jak dawniej. Gdy klucza nie ma po 3 s, pod polem stoi, że komputer jeszcze łączy rozpoznawanie mowy.
     async function glosStart() {
       if (glos.stan !== 'nic' || pracuje) return;
-      Object.assign(glos, { stan: 'start', gotowe: '', tym: '', przed: hal.otwarty ? '' : pole.value.replace(/\s+$/, ''), wyslij: true, konczy: false, maKlucz: false, czekaNaKlucz: false });
+      Object.assign(glos, { stan: 'start', gotowe: '', tym: '', przed: hal.otwarty ? '' : pole.value.replace(/\s+$/, ''), pomin: 0, ostatnio: null, dykt: '', wyslij: true, konczy: false, maKlucz: false, czekaNaKlucz: false });
       clearTimeout(glos.cisza);
       glos.cisza = 0;
       uz('mik', 'start');
@@ -1844,7 +1844,14 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       const k = koniecWypowiedzi((glos.gotowe + glos.tym).replace(/\s+/g, ' ').trim());
       // Jeśli pole stało na dole, po dopisaniu słów przewija się do końca (ostatnie zdanie zawsze widać). Przewinięte ręcznie wyżej zostaje tam, gdzie je zostawiono.
       const bylNaDole = poleNaDole();
-      pole.value = k.tekst;
+      // Dyktowanie dopisuje się za tekstem, który już stał w polu (od 7.11.2026, Jacek przez Nadzór: przejście z klawiatury Android na mikrofon aplikacji
+      // i z powrotem niczego nie kasuje). Do tego dnia pole dostawało sam tekst z Soniox i wpisane wcześniej słowa znikały. Gdy w trakcie dyktowania
+      // ktoś dopisze coś klawiaturą, to zostaje, a dalsze słowa idą za nim.
+      if (glos.ostatnio !== null && pole.value !== glos.ostatnio) { glos.przed = pole.value.replace(/\s+$/, ''); glos.pomin = glos.dykt.length; }
+      const nowe = k.tekst.slice(glos.pomin).trim();
+      pole.value = glos.przed ? (nowe ? glos.przed + ' ' + nowe : glos.przed) : nowe;
+      glos.ostatnio = pole.value;
+      glos.dykt = k.tekst;
       rosnij();
       if (bylNaDole) pole.scrollTop = pole.scrollHeight;
       przyciski();
