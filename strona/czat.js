@@ -378,7 +378,8 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       return 'Pokaż ' + BIERNIK[p.zakladka];
     }
     function wiadomosc(w) {
-      if (w.kto === 'ja') return el('div', { class: 'czat-w ja' }, el('div', { class: 'czat-babelek' }, ...bloki(w.tekst)));
+      // Podpis pytania (od 7.11.2026): imię stoi nad dymkiem, gdy pytanie zadał ktoś inny niż właściciel tego urządzenia.
+      if (w.kto === 'ja') return el('div', { class: 'czat-w ja' }, w.autor && w.autor !== autorZ(o.skad) ? el('span', { class: 'czat-autor', text: w.autor }) : null, el('div', { class: 'czat-babelek' }, ...bloki(w.tekst)));
       const box = el('div', { class: 'czat-w ai' });
       if (w.blad) {
         box.append(el('div', { class: 'czat-babelek blad' }, el('p', { text: w.blad })));
@@ -969,9 +970,30 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
         if (!d || !Array.isArray(d.rozmowy) || String(d.czas) === wspolneR.znak) return;
         wspolneR.lista = d.rozmowy;
         wspolneR.znak = String(d.czas);
+        scalWspolne();
         gdy();
       } catch { /* bez sieci zostaje ostatnia lista */ }
     }
+    // Synchronizacja (od 7.11.2026 wieczorem, Jacek: „Gadałem sobie przed chwilą na telefonie … idę do komputera, chcę kontynuować tę rozmowę i vice versa”):
+    // rozmowa, którą to urządzenie już ma, a którą ktoś pociągnął dalej gdzie indziej (więcej pytań we wspólnej kopii), dostaje nowe wpisy. Dotyczy bieżącej
+    // rozmowy i Rozmów. Lista przychodzi przy otwarciu czatu i co minutę, gdy czat jest na ekranie.
+    const pytanJa = (w) => w.filter((x) => x && x.kto === 'ja').length;
+    const zWspolnej = (r) => r.wpisy.map((x) => Object.assign({ kto: x.kto === 'ja' ? 'ja' : 'ai', tekst: String(x.tekst || '') }, x.autor ? { autor: x.autor } : {}));
+    function scalWspolne() {
+      const biez = pamiec.czytaj('rozmowa', null);
+      for (const r of wspolneR.lista) {
+        if (!r || !r.id || !Array.isArray(r.wpisy)) continue;
+        if (r.id === biez) {
+          if (!pracuje && pytanJa(r.wpisy) > pytanJa(historia)) { historia = zWspolnej(r).slice(-NAJWIECEJ); zapiszHistorie(); pamiec.zapisz('ostatnio', Math.max(r.czas || 0, Date.now() - 1000)); if (!widokHistorii) rysuj(); }
+          continue;
+        }
+        for (const n of ['historia', 'archiwum']) {
+          const l = czytajListe(n), x = l.find((y) => y.id === r.id);
+          if (x && pytanJa(r.wpisy) > pytanJa(x.wpisy)) { x.wpisy = zWspolnej(r); x.czas = r.czas || x.czas; zapiszListe(n, l); }
+        }
+      }
+    }
+    setInterval(() => { if (!document.hidden && (tryb === 'panel' || otwarty())) pobierzWspolne(() => { if (widokHistorii === 'historia') pokazHistorie('historia', true); }); }, 60000);
     function wierszWspolny(r) {
       const pytania = r.wpisy.filter((x) => x.kto === 'ja');
       const b = el('button', { type: 'button', class: 'czat-rozmowa' }, el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? pytania[0].tekst : 'Rozmowa' }),
@@ -1255,7 +1277,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       bezCofnijPola = true;
       rosnij();
       przyciski();
-      dodaj({ kto: 'ja', tekst: q });
+      dodaj({ kto: 'ja', tekst: q, autor: autorZ(o.skad) });
       zadaj(q);
       return true;
     }
@@ -1311,6 +1333,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       if (tryb === 'strona') return;
       doRozmowy = 0;
       poCzasie();
+      pobierzWspolne(() => { if (widokHistorii === 'historia') pokazHistorie('historia', true); });
       // Małe okno tylko na telefonie, w arkuszu. Otwarte małe okno rozwija się na cały ekran, gdy ktoś otwiera czat zwykłym stuknięciem.
       const malo = m === true && tryb === 'arkusz' && innerWidth < 760;
       if (otwarty() && mini && !malo) { mini = false; zdejmijWskazanie(); miniKlasy(); dopasuj(); naDol(); if (o.naZmiane) o.naZmiane(true, false); return; }

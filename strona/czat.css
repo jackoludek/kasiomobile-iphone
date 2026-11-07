@@ -630,3 +630,6 @@ body:not(.czat-otwarty) .czat-ikonka.czat-plywak.schowany:not(.ciagniety):not(.t
 .czat .czat-dymek-akcja:active { transform: scale(1.06); }
 .czat-pracuje .czat-dymek-akcje { visibility: hidden; }
 .czat-babelek { cursor: pointer; }
+
+/* Imię nad pytaniem zadanym na innym urządzeniu przez drugą osobę (od 7.11.2026). Drugi plan, 13 px. */
+.czat-autor { display: block; align-self: flex-end; margin: 0 4px 4px; color: var(--cz-tekst2); font-size: 13px; line-height: 1.3; }
