@@ -264,10 +264,38 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const POLE_MAX = 132;
     // Przy zmianie pytania na stałe pole sięga do 36% wysokości ekranu, żeby długie polecenie dało się czytać i przewijać (od 27.10.2026 wieczorem).
     const poleMax = () => (edycja.aktywna ? Math.max(POLE_MAX, Math.round(innerHeight * 0.36)) : POLE_MAX);
+    // Tekst nigdy nie ginie (od 7.11.2026, reguła tekst-nigdy-nie-ginie.md; Jacek: „ja muszę być w stanie wrócić do tego, co już wpisałem lub powiedziałem”):
+    // każda zmiana pola, z klawiatury i z dyktowania, trafia od razu do trwałej listy „pisane” w pamięci urządzenia, zanim padnie Wyślij. Wpisy z przerwą krótszą
+    // niż minuta (i całe dyktowanie, z oddechami) to jeden wątek; dłuższa przerwa albo duże skasowanie zaczyna nowy, więc skasowany tekst zostaje w starym.
+    // Wątki stoją w Rozmowach pod „Wpisane wcześniej”, a stuknięcie oddaje tekst do pola. Najwyżej 60 wątków z 30 dni.
+    const PISANE_MAX = 60, WATEK_MS = 60000;
+    let poprzedniTekst = pole.value, bezCofnijPola = false;
+    function zapiszPisane(t) {
+      if (!String(t || '').trim()) return;
+      let l = pamiec.czytaj('pisane', []);
+      if (!Array.isArray(l)) l = [];
+      const teraz = Date.now(), ost = l[0];
+      const ciagle = ost && (teraz - ost.do < WATEK_MS || (() => { try { return glos.stan !== 'nic'; } catch { return false; } })());
+      if (ciagle && !(ost.tekst.length - t.length > 20 && !ost.tekst.startsWith(t))) { ost.tekst = t; ost.do = teraz; }
+      else if (!ost || ost.tekst !== t) l.unshift({ od: teraz, do: teraz, tekst: t });
+      pamiec.zapisz('pisane', l.filter((w) => teraz - w.do < 30 * 864e5).slice(0, PISANE_MAX));
+    }
     function rosnij() {
       pole.style.height = 'auto';
       pole.style.height = Math.min(pole.scrollHeight + 2, poleMax()) + 'px';
-      if (!edycja.aktywna) pamiec.zapisz('szkic', pole.value);
+      if (!edycja.aktywna) {
+        pamiec.zapisz('szkic', pole.value);
+        zapiszPisane(pole.value);
+        // Duże skasowanie (co najmniej dwa zdania albo 120 znaków), które nie jest wysłaniem: „Cofnij” przez 6 s i Ctrl+Z oddają tekst, bez okienka.
+        const usuniete = poprzedniTekst.length - pole.value.length, zdan = (poprzedniTekst.match(/[.!?…]+(\s|$)/g) || []).length - (pole.value.match(/[.!?…]+(\s|$)/g) || []).length;
+        if (!bezCofnijPola && usuniete > 0 && (usuniete >= 120 || zdan >= 2) && typeof pokazCofnijCzat === 'function') try {
+          ruchy.wstecz.push({ pole: { przed: poprzedniTekst, po: pole.value } });
+          ruchy.naprzod.length = 0;
+          pokazCofnijCzat('Cofnij skasowanie tekstu');
+        } catch { /* przed zbudowaniem cofania */ }
+        poprzedniTekst = pole.value;
+        bezCofnijPola = false;
+      }
       ustawCofnij();
     }
     const poleNaDole = () => pole.scrollTop + pole.clientHeight >= pole.scrollHeight - 4;
@@ -714,6 +742,17 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       const k = (ponow ? ruchy.naprzod : ruchy.wstecz).pop();
       if (!k) return false;
       // Usunięty dymek rozmowy (od 7.11.2026): wraca na swoje miejsce, a Ponów zdejmuje go znowu.
+      // Skasowany tekst w polu pytania (od 7.11.2026): wraca cały, a Ponów kasuje go znowu.
+      if (k.pole) {
+        pole.value = ponow ? k.pole.po : k.pole.przed;
+        bezCofnijPola = true;
+        rosnij();
+        przyciski();
+        (ponow ? ruchy.wstecz : ruchy.naprzod).push(k);
+        pokazCofnijCzat(null);
+        pole.focus({ preventScroll: true });
+        return true;
+      }
       if (k.dymek) {
         if (ponow) historia.splice(k.dymek.i, 1); else historia.splice(k.dymek.i, 0, k.dymek.w);
         zapiszHistorie();
@@ -970,6 +1009,14 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
           const l = obce.filter((r) => r.autor === kto);
           if (l.length) tresc.push(el('h4', { class: 'czat-grupa', text: kto === autorZ(o.skad) ? 'Twoje z innych urządzeń' : kto === 'Jacek' ? 'Rozmowy Jacka' : 'Rozmowy Kasi' }), el('div', { class: 'czat-rozmowy' }, ...l.map(wierszWspolny)));
         }
+        // Wpisane wcześniej (od 7.11.2026): wątki z listy „pisane” bez tych, które są w polu albo poszły jako pytanie tej rozmowy.
+        const wyslane = new Set(historia.filter((x) => x.kto === 'ja').map((x) => String(x.tekst || '').trim()));
+        const pisane = (pamiec.czytaj('pisane', []) || []).filter((w) => w && w.tekst && w.tekst !== pole.value && !wyslane.has(w.tekst.replace(/\s+/g, ' ').trim())).slice(0, 15);
+        if (pisane.length) tresc.push(el('h4', { class: 'czat-grupa', text: 'Wpisane wcześniej' }), el('div', { class: 'czat-rozmowy' }, ...pisane.map((w) => {
+          const b = el('button', { type: 'button', class: 'czat-rozmowa' }, el('span', { class: 'czat-rozmowa-tytul', text: w.tekst }), el('span', { class: 'czat-rozmowa-kiedy', text: kiedyKrotko(w.do) }));
+          b.addEventListener('click', () => { const bylo = pole.value; if (bylo.trim()) zapiszPisane(bylo); rysuj(); pole.value = w.tekst; bezCofnijPola = true; rosnij(); przyciski(); pole.focus({ preventScroll: true }); });
+          return el('div', { class: 'czat-wiersz' }, b);
+        })));
         pobierzWspolne(() => { if (widokHistorii === 'historia') pokazHistorie('historia', true); });
       }
       lista.replaceChildren(...tresc);
@@ -1182,9 +1229,10 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       const q = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 600);
       if (!q || pracuje) return false;
       glosBezWysylki();
-      if (hal.otwarty) { uz('hal-pytanie', q); pole.value = ''; rosnij(); przyciski(); halZadaj(q); return true; }
+      if (hal.otwarty) { uz('hal-pytanie', q); pole.value = ''; bezCofnijPola = true; rosnij(); przyciski(); halZadaj(q); return true; }
       uz('pytanie', q);
       pole.value = '';
+      bezCofnijPola = true;
       rosnij();
       przyciski();
       dodaj({ kto: 'ja', tekst: q });
