@@ -32,7 +32,23 @@
 // Wskazanie (próba od 28.10.2026, tylko małe okno): celownik przeciągnięty na rzecz w aplikacji mówi komputerowi, o którą rzecz chodzi (pole „w”).
 'use strict';
 (() => {
-  const SERWER = 'https://ntfy.sh', SONIOX = 'wss://stt-rt.soniox.com/transcribe-websocket';
+  // Ścieżki do zrzutów w pytaniu (od 7.11.2026, Jacek: „zamiast tego linku pokazywał się thumbnail tego właściwego screenshotu”): program do zrzutów wkleja
+// ścieżkę jako tekst. Dymek pokazuje miniaturę (stuknięcie: cały ekran), a tytuł rozmowy bierze słowa po ścieżce. Do asystenta ścieżka idzie dalej, a komputer
+// czyta plik i pokazuje go modelowi.
+const OBRAZ_RE = /[A-Za-z]:\\(?:[^\\\n:*?"<>|]+\\)*[^\\\n:*?"<>|]*?\.(?:png|jpe?g|webp|gif)\b/gi;
+const FOLDER_RE = /^[A-Za-z]:\\(?:[^\\\n]+\\)+(?:\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})?\s*/;
+const obrazyZ = (t) => String(t || '').match(OBRAZ_RE) || [];
+const bezSciezek = (t) => String(t || '').replace(OBRAZ_RE, ' ').replace(FOLDER_RE, '').replace(/\s+/g, ' ').trim();
+function pelnyObraz(src) {
+  const z = el('div', { class: 'czat-obraz-pelny', role: 'dialog', 'aria-label': 'Obraz', tabindex: '-1' }, el('img', { src, alt: '' }));
+  const zamk = () => { z.remove(); removeEventListener('keydown', kl, true); };
+  const kl = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); zamk(); } };
+  z.addEventListener('click', zamk);
+  addEventListener('keydown', kl, true);
+  document.body.append(z);
+  z.focus({ preventScroll: true });
+}
+const SERWER = 'https://ntfy.sh', SONIOX = 'wss://stt-rt.soniox.com/transcribe-websocket';
 // Autor rozmowy (od 7.11.2026, Jacek: urządzenia Apple „To będzie Kasia. Jacek jest na Androidzie i na Windowsie … na Linuxie”).
 const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== 'komputer' && /iPhone|iPad|Macintosh/.test(navigator.userAgent)) ? 'Kasia' : 'Jacek');
   const CZEKAJ_MS = 90000, KLUCZ_MS = 20000, NAJWIECEJ = 40, NOWA_ROZMOWA_MS = 6 * 3600 * 1000;
@@ -189,12 +205,13 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const nowaB = przycisk('pisz', 'Nowa rozmowa', 'czat-nowa', 24);
     // Poziom myślenia (od 7.11.2026, Jacek: „mieć wybór poziomu myślenia … czasami chciałbym głębsze odpowiedzi, czasami wolniejsze”): kółko z trzema słupkami
     // jak zasięg w telefonie, stuknięcie przełącza Szybko, Zwykle i Głęboko (Opus 5.5 z wysiłkiem low, high i xhigh). Wybór zostaje w pamięci urządzenia.
-    const POZIOMY = [['low', 'Szybko', 'Krótko i szybko.'], ['high', 'Zwykle', 'Jak dotąd.'], ['xhigh', 'Głęboko', 'Dłużej myśli, odpowiedź potrwa dłużej.']];
+    // Od 7.11.2026 wieczorem cztery poziomy, każdy z długością odpowiedzi (Jacek: „ja będę sobie wybierał, czy chcę dłuższą, czy krótszą … Opus 5.5 nawet max”).
+    const POZIOMY = [['low', 'Krótko', 'Szybka, krótka odpowiedź.'], ['high', 'Zwykle', 'Jak dotąd.'], ['xhigh', 'Dłużej', 'Dłuższa odpowiedź, trochę poczekasz.'], ['max', 'Max', 'Opus 5.5 na maksimum: pełna odpowiedź, do 3 minut.']];
     let poziom = POZIOMY.some(([k]) => k === pamiec.czytaj('poziom', 'high')) ? pamiec.czytaj('poziom', 'high') : 'high';
     const poziomB = el('button', { type: 'button', class: 'czat-ikonka czat-poziom' });
     function ustawPoziom() {
       const i = POZIOMY.findIndex(([k]) => k === poziom);
-      poziomB.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">' + [[5, 14], [10.5, 10], [16, 6]].map(([x, y], j) => `<rect x="${x}" y="${y}" width="3" height="${19 - y}" rx="1.5" fill="currentColor" opacity="${j <= i ? 1 : 0.28}"/>`).join('') + '</svg>';
+      poziomB.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">' + [[3, 15], [8, 11.5], [13, 8], [18, 4.5]].map(([x, y], j) => `<rect x="${x}" y="${y}" width="3" height="${19 - y}" rx="1.5" fill="currentColor" opacity="${j <= i ? 1 : 0.28}"/>`).join('') + '</svg>';
       poziomB.setAttribute('aria-label', `Myślenie: ${POZIOMY[i][1]}. Stuknij, żeby zmienić`);
       poziomB.dataset.poziom = poziom;
     }
@@ -218,7 +235,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null, historiaB, tytulL, miniChip, wskazB, rozwinB, poziomB, nowaB, zamknijB);
     const lista = el('div', { class: 'czat-lista', role: 'log', 'aria-live': 'polite', 'aria-label': 'Rozmowa z asystentem' });
     const stanL = el('p', { class: 'czat-stan', role: 'status', hidden: true });
-    const pole = el('textarea', { class: 'czat-tekst', rows: '1', maxlength: '600', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
+    const pole = el('textarea', { class: 'czat-tekst', rows: '1', maxlength: '6000', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
     const mikB = przycisk('mikrofon', 'Powiedz pytanie', 'czat-mik');
     mikB.hidden = true;
     const wyslijB = przycisk('wyslij', 'Wyślij', 'czat-wyslij');
@@ -274,7 +291,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       if (historiaB.dataset.znak !== znak) { historiaB.innerHTML = ikona(znak, 24); historiaB.dataset.znak = znak; }
       historiaB.setAttribute('aria-label', w === 'historia' ? 'Wróć do rozmowy' : 'Rozmowy');
       const pierwsze = historia.find((x) => x.kto === 'ja');
-      const t = w === 'historia' ? 'Rozmowy' : w ? 'Archiwum i kosz' : edycja.aktywna ? 'Pytania na stałe' : pierwsze ? String(pierwsze.tekst || '') : '';
+      const t = w === 'historia' ? 'Rozmowy' : w ? 'Archiwum i kosz' : edycja.aktywna ? 'Pytania na stałe' : pierwsze ? (bezSciezek(pierwsze.tekst) || 'Zrzut ekranu') : '';
       if (tytulL.textContent !== t) tytulL.textContent = t;
       tytulL.setAttribute('aria-hidden', t ? 'false' : 'true');
     }
@@ -379,7 +396,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     }
     function wiadomosc(w) {
       // Podpis pytania (od 7.11.2026): imię stoi nad dymkiem, gdy pytanie zadał ktoś inny niż właściciel tego urządzenia.
-      if (w.kto === 'ja') return el('div', { class: 'czat-w ja' }, w.autor && w.autor !== autorZ(o.skad) ? el('span', { class: 'czat-autor', text: w.autor }) : null, el('div', { class: 'czat-babelek' }, ...bloki(w.tekst)));
+      if (w.kto === 'ja') return el('div', { class: 'czat-w ja' }, w.autor && w.autor !== autorZ(o.skad) ? el('span', { class: 'czat-autor', text: w.autor }) : null, el('div', { class: 'czat-babelek' }, ...obrazyZ(w.tekst).map((s) => { const i = el('img', { class: 'czat-miniatura', src: 'file:///' + s.replace(/\\/g, '/').split('/').map((x, j) => (j ? encodeURIComponent(x) : x)).join('/'), alt: 'Zrzut ekranu', loading: 'lazy' }); i.addEventListener('click', (e) => { e.stopPropagation(); pelnyObraz(i.src); }); i.addEventListener('error', () => i.replaceWith(el('span', { class: 'czat-zrzut', text: 'Zrzut ekranu' }))); return i; }), ...(bezSciezek(w.tekst) ? bloki(bezSciezek(w.tekst)) : [])));
       const box = el('div', { class: 'czat-w ai' });
       if (w.blad) {
         box.append(el('div', { class: 'czat-babelek blad' }, el('p', { text: w.blad })));
@@ -920,7 +937,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     function wierszRozmowy(n, r) {
       const pytania = r.wpisy.filter((x) => x.kto === 'ja'), { prawo, lewo } = AKCJE[n];
       const b = el('button', { type: 'button', class: 'czat-rozmowa' },
-        el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? pytania[0].tekst : 'Rozmowa' }),
+        el('span', { class: 'czat-rozmowa-tytul', text: pytania[0] ? bezSciezek(pytania[0].tekst) || 'Zrzut ekranu' : 'Rozmowa' }),
         el('span', { class: 'czat-rozmowa-kiedy', text: `${r.autor || autorZ(o.skad)} · ${n === 'kosz' ? zniknie(r.usunieto) : n === 'historia' || n === 'archiwum' ? kiedyKrotko(r.czas) : kiedy(r.czas)} · ${pytan(pytania.length)}` }));
       const strona = (cel, klasa) => (cel ? el('span', { class: klasa, html: ikona(CEL[cel].ikona, 22) }, el('span', { text: CEL[cel].napis })) : null);
       const w = el('div', { class: 'czat-wiersz', style: `--k-prawo:${prawo ? CEL[prawo].kolor : 'transparent'};--k-lewo:${lewo ? CEL[lewo].kolor : 'transparent'}` },
@@ -1081,6 +1098,8 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     function zamknijStrumien() { if (strumien) { strumien.abort(); strumien = null; } }
     function odebrane(w) {
       let d;
+      // Długa odpowiedź przychodzi jako plik (ntfy.sh robi z wiadomości ponad 4 KB załącznik, od 7.11.2026).
+      if (w.attachment && w.attachment.url && !w.zPliku) { fetch(w.attachment.url, { cache: 'no-store' }).then((r) => r.text()).then((t) => odebrane({ message: t, zPliku: true })).catch(() => {}); return; }
       try { d = JSON.parse(w.message); } catch { return; }
       if (!d || typeof d.id !== 'string') return;
       if (typeof d.glos === 'boolean') { zapiszGlos(d.glos); pokazMik(); }
@@ -1231,7 +1250,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       const wPole = czekanie ? '' : opisDlaKomputera(widok);
       const popraw = czekanie ? 0 : Number(poprawka) || 0;
       if (!czekanie) poprawka = 0;
-      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '', poziom }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), CZEKAJ_MS, q));
+      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '', poziom }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), poziom === 'max' ? 200000 : poziom === 'xhigh' ? 140000 : CZEKAJ_MS, q));
       mysli.remove();
       mysli = null;
       pracuje = false;
@@ -1268,7 +1287,8 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     }
     function wyslij(t) {
       if (edycja.aktywna) { if (String(t || '').trim()) glosBezWysylki(); return zapiszPytanie(t); }
-      const q = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 600);
+      // Do 7.11.2026 pytanie było ucinane do 600 znaków, więc długie dyktowanie przepadało (Jacek: „nagrało tylko tyle, ile się nagra”). Teraz 6000.
+      const q = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 6000);
       if (!q || pracuje) return false;
       glosBezWysylki();
       if (hal.otwarty) { uz('hal-pytanie', q); pole.value = ''; bezCofnijPola = true; rosnij(); przyciski(); halZadaj(q); return true; }

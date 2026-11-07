@@ -2578,7 +2578,10 @@
         for (const [z, gest, skutek] of l) {
           const znak = el('span', { class: 'sciaga-znak' });
           znak.innerHTML = SVG(20, ZNAKI[z]);
-          ul.append(el('li', null, znak, el('span', null, el('b', { text: gest }), el('span', { class: 'skutek', text: skutek }))));
+          const li = el('li', null, znak, el('span', null, el('b', { text: gest }), el('span', { class: 'skutek', text: skutek })));
+          // HAL pod widocznym przyciskiem (od 7.11.2026, Jacek w Fiszkach: „Niech jest”): poza kółkiem narysowanym palcem otwiera go też przycisk w ściądze.
+          if (z === 'kolko') { const b = el('button', { type: 'button', class: 'sciaga-akcja', text: 'Otwórz HAL-a' }); b.addEventListener('click', () => { zamknij(); if (halZKolka) halZKolka(); }); li.append(b); }
+          ul.append(li);
         }
         tresc.append(el('section', { class: 'sciaga-czesc' }, el('h2', { text: tytul }), ul));
       }

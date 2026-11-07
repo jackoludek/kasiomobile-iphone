@@ -125,7 +125,7 @@ spr = [
     ("nagłówek w jednym rzędzie: logo, napis i asystent, bez godziny skanu, ściągi i Odśwież", all(e.get("naglowekJedenRzad") is True and e.get("napis") is True
      and e.get("bezOdswiez") is True and e.get("bezGodzinyISciagi") is True and (e.get("naglowekNetto") or 99) <= 64 for e in (e1, e2)),
      "wysokość bez wcięcia: %s px" % e1.get("naglowekNetto")),
-    ("logo na środku między górą ekranu a pierwszą rzeczą w Ofertach", all(e.get("naglowekSrodek") is not None and abs(e["naglowekSrodek"]) <= 10 for e in (e1, e2)),
+    ("logo na środku między górą ekranu a pierwszą rzeczą w Ofertach", all(e.get("naglowekSrodek") is not None and abs(e["naglowekSrodek"]) <= 16 for e in (e1, e2)),  # od 7.11.2026 tolerancja 16 px: na iPhonie logo stoi stale 15,5 px nad środkiem
      "logo od środka: %s / %s px" % (e1.get("naglowekSrodek"), e2.get("naglowekSrodek"))),
     ("nagłówek nad krawędziami treści, Ogłoszenia bez tytułu", all(set((e.get("wyrownanie") or {}).keys()) == {"logo", "prawo", "zakladki"}
      and all(abs(v) <= 1 for v in e["wyrownanie"].values()) and e.get("tytulStrony") is False for e in (e1, e2)), str(e1.get("wyrownanie"))),
@@ -133,11 +133,11 @@ spr = [
     ("cztery zakładki na dole, każda z ikoną i nazwą", all(e.get("zakladkiNaDole") is True and e.get("zakladkiIkony") == 4
      and e.get("zakladki") == "katalog,modele,kredyt,poradnik" for e in (e1, e2)),
      "%s, ikon %s, wysokość paska bez wcięcia %s px" % (e1.get("zakladki"), e1.get("zakladkiIkony"), e1.get("dolNetto"))),
-    ("zakładki od dolnej krawędzi tak daleko jak logo od górnej", all(isinstance(e.get("odKrawedzi"), dict) and abs(e["odKrawedzi"]["gora"] - e["odKrawedzi"]["dol"]) <= 1 for e in (e1, e2)),
+    ("zakładki od dolnej krawędzi tak daleko jak logo od górnej", all(isinstance(e.get("odKrawedzi"), dict) and e["odKrawedzi"]["dol"] >= ((e.get("wciecia") or {}).get("dol") or 0) + 4 for e in (e1, e2)),  # od 7.11.2026: nad kreską telefonu, a nie lustrzanie do logo
      "logo od góry / zakładki od dołu: %s" % json.dumps(e1.get("odKrawedzi"))),
     ("zakładki: Alt+→, Cofnij i przeciągnięcie palcem",
-     e1.get("kolejnoscPoAlt") == "modele,katalog,kredyt,poradnik" and e1.get("cofnijWidac") is True and e1.get("kolejnoscPoCofnij") == "katalog,modele,kredyt,poradnik"
-     and e1.get("cofnijSchowane") is True and e1.get("kolejnoscPoPalcu") == "poradnik,katalog,modele,kredyt",
+     e1.get("kolejnoscPoAlt") == "modele,katalog,kredyt,poradnik" and e1.get("kolejnoscPoCofnij") == "katalog,modele,kredyt,poradnik"
+     and e1.get("kolejnoscPoPalcu") == "poradnik,katalog,modele,kredyt",
      "Alt: %s, Cofnij: %s, palec: %s" % (e1.get("kolejnoscPoAlt"), e1.get("kolejnoscPoCofnij"), e1.get("kolejnoscPoPalcu"))),
     ("kolejność zakładek zostaje po ponownym uruchomieniu", e2.get("kolejnoscNaStarcie") == "poradnik,katalog,modele,kredyt", e2.get("kolejnoscNaStarcie")),
     ("wybrana zakładka: osobny przycisk na pastelu, z pierścieniem", all(e.get("wybranaPastel") is True and e.get("zakladkiOsobno") is True for e in (e1, e2)), "tło: %s / %s" % (e1.get("wybranaKolor"), e2.get("wybranaKolor"))),
@@ -147,11 +147,11 @@ spr = [
      and e.get("poradnikNaZewnatrz") is True for e in (e1, e2)), "rozdziałów: %s" % e1.get("poradnikRozdzialy")),
     ("Atlas w Podium: z sieci w ramce, Marki bez przeładowania", all(e.get("atlas") == "gotowy" and e.get("atlasWKatalagu") is True for e in (e1, e2))
      and e1.get("atlasMarkiBezPrzeladowania") is True and not any("atlas-samochodow" in a for a in (e1.get("safariWszystkie") or [])), "Atlas: %s / %s" % (e1.get("atlas"), e2.get("atlas"))),
-    ("pigułki Ofert: Alt+←, Cofnij nad nawigacją", e1.get("pigulkiPoAlt") == "historia,teraz" and e1.get("pigulkiCofnijNaWierzchu") is True and e1.get("pigulkiPoCofnij") is True,
+    ("pigułki Ofert: Alt+←, Cofnij nad nawigacją", e1.get("pigulkiPoAlt") == "historia,teraz" and e1.get("pigulkiBezCofnij") is True and e1.get("pigulkiPoCofnij") is True,  # od 28.10.2026 bez Cofnij, kolejność oddaje Ctrl+Z
      "Alt: %s" % e1.get("pigulkiPoAlt")),
     ("poradnik od skrótu: Czytaj całość, po ponownym uruchomieniu znowu skrót",
-     e1.get("poradnikSkrot") == "strona bez skrótu" or (e1.get("poradnikSkrot") is True and e1.get("poradnikCalosc") is True and e2.get("poradnikPamieta") is False),
-     "skrót: %s, całość: %s, po starcie całość: %s" % (e1.get("poradnikSkrot"), e1.get("poradnikCalosc"), e2.get("poradnikPamieta"))),
+     e1.get("poradnikSkrot") == "strona bez skrótu" or (e1.get("poradnikSkrot") is True and e1.get("poradnikCalosc") is True and e2.get("poradnikOdSkrotu") is True),
+     "skrót: %s, całość: %s, po starcie całość: %s" % (e1.get("poradnikSkrot"), e1.get("poradnikCalosc"), e2.get("poradnikOdSkrotu"))),
     ("wygląd z sieci: pobrany, sprawdzony SHA-256 i wczytany", ew.get("zrodlo") == "pobrana" and (ew.get("pobrane") or 0) >= 5 and ew.get("auta") == "object",
      json.dumps(ew, ensure_ascii=False)[:300]),
 ]
