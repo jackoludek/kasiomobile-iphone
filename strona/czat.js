@@ -57,7 +57,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
   // pigułka Historia w Ogłoszeniach, a „poradnik” zakładka Poradnik.
   const BIERNIK = { katalog: 'Oferty', nowe: 'Oferty', modele: 'Podium', kredyt: 'Finanse', historia: 'Historię', poradnik: 'Poradnik' };
   // Podpowiedzi w barwach zakładek, których dotyczą (od 26.10.2026): Podium niebieskie, Oferty zielone, Poradnik fioletowy, Finanse pomarańczowe.
-  const PODPOWIEDZI = [['Najbezpieczniejsze auto do 90 tys. zł?', 'modele'], ['Co nowego dziś na Otomoto?', 'katalog'], ['Czy Corolla kombi zmieści psa?', 'poradnik'], ['Ile wyjdzie rata za 60 tys. zł?', 'kredyt']];
+  const PODPOWIEDZI = [['Najbezpieczniejsze auto do 100 tys. zł?', 'modele'], ['Co nowego dziś na Otomoto?', 'katalog'], ['Czy Corolla kombi zmieści psa?', 'poradnik'], ['Ile wyjdzie rata za 60 tys. zł?', 'kredyt']];
   // Własne pytania na stałe (od 27.10.2026; Jacek: „możliwość edytowania i ustawienia sobie własnych pytań na stałe, a jeden klik za pytanie”): na pustej rozmowie
   // zamiast czterech stałych podpowiedzi stoi lista z pamięci telefonu (za pierwszym razem te same cztery). Najwyżej 12 pytań po 600 znaków (od wieczora 27.10.2026; Jacek: „killer feature”: pytanie może być całym poleceniem, które się przewija).
   const PYTANIA_MAX = 12, PYTANIE_DL = 600;
@@ -73,6 +73,10 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     soniox: 'Rozpoznawanie mowy nie odpowiedziało. Spróbuj jeszcze raz albo napisz pytanie.',
     // Mikrofon wyłączył się sam (od 27.10.2026): cisza dłuższa niż bezpiecznik albo zamknięte połączenie. Nic nie poszło, tekst zostaje w polu.
     cisza: (s) => `Cisza od ${s} sekund, więc przestałem słuchać. Tekst zostaje w polu.`,
+    // Bezpiecznik startu (od 10.11.2026, jak Dyktowanie na Windows): mikrofon nie usłyszał niczego od włączenia.
+    nicNieSlysze: 'Nic nie słyszę. Powiedz coś albo stuknij mikrofon.',
+    ciszaStart: (s) => `Nic nie słyszałem przez ${s} sekund, więc przestałem słuchać.`,
+    odliczam: (s) => `Cisza · skończę za ${s} s. Powiedz „odbiór” albo stuknij mikrofon.`,
     zerwane: (jest) => `Rozpoznawanie mowy się rozłączyło.${jest ? ' Tekst zostaje w polu.' : ''}`,
   };
   // Strumień odpowiedzi z ntfy.sh czytany na bieżąco; bez strumieni (stara przeglądarka) pytamy co 2,5 sekundy.
@@ -1846,7 +1850,10 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true, max_endpoint_delay_ms: 1000, context: { terms: ['odbiór', 'bez odbioru'] } };
     // W trybie HAL mikrofon słucha po angielsku i po polsku i podaje język każdego słowa (token.language), a pytanie niesie ten język do komputera.
     const konfSoniox = () => (hal.otwarty ? Object.assign({}, KONF_SONIOX, { language_hints: ['en', 'pl'], enable_language_identification: true }) : KONF_SONIOX);
-    const CISZA_MS = 15000;
+    // Bezpiecznik ciszy 12 s (od 10.11.2026, Jacek przez Dyktowanie: „12 s, jak mówiłem”, wszędzie; w telefonie zapomina wyłączyć nagrywanie, a za rozpoznawanie płaci).
+    // Licznik rusza po pierwszym głosie albo słowie; przed nim bezpiecznik startu: po 8 s „Nic nie słyszę”, po 20 s koniec. Ostatnie 5 s odlicza pod polem.
+    // Głos to szczyt próbki ponad 1500 w skali 16 bit, jak w Dyktowaniu; mierzy go analizator na strumieniu mikrofonu (na iPhonie powłoka nie daje dźwięku, więc tam liczą się słowa).
+    const CISZA_MS = 12000, START_NIC_MS = 8000, START_KONIEC_MS = 20000, ODLICZ_MS = 5000, PROG_GLOSU = 1500 / 32768;
     // „Bez odbioru” sprawdzamy przed „odbiorem”. Wielkość liter, kropka i inne znaki na końcu nie mają znaczenia, a „od biór” rozdzielone przez Soniox też się liczy.
     const KONIEC_BEZ = /(^|[^\p{L}\p{N}])bez\s+od\s?bi[oó]r(?:u)?[^\p{L}\p{N}]*$/iu;
     const KONIEC_ODBIOR = /(^|[^\p{L}\p{N}])od\s?bi[oó]r[^\p{L}\p{N}]*$/iu;
@@ -1905,15 +1912,14 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     async function glosStart() {
       if (glos.stan !== 'nic' || pracuje) return;
       Object.assign(glos, { stan: 'start', gotowe: '', tym: '', przed: hal.otwarty ? '' : pole.value.replace(/\s+$/, ''), pomin: 0, ostatnio: null, dykt: '', wyslij: true, konczy: false, maKlucz: false, czekaNaKlucz: false });
-      clearTimeout(glos.cisza);
-      glos.cisza = 0;
       uz('mik', 'start');
       pokazGlos();
+      ciszaStart();
       const kluczTeraz = klucz();
       kluczTeraz.catch(() => { /* błąd przychodzi niżej, przez await */ });
       clearTimeout(glos.zegarKlucza);
       glos.zegarKlucza = setTimeout(() => { if (glos.stan !== 'nic' && !glos.maKlucz) { glos.czekaNaKlucz = true; pokazGlos(); } }, 3000);
-      const jest = (k) => { glos.maKlucz = true; clearTimeout(glos.zegarKlucza); if (glos.czekaNaKlucz) { glos.czekaNaKlucz = false; pokazGlos(); } ciszaOdNowa(); return k; };
+      const jest = (k) => { glos.maKlucz = true; clearTimeout(glos.zegarKlucza); if (glos.czekaNaKlucz) { glos.czekaNaKlucz = false; pokazGlos(); } return k; };
       // iPhone: Aplikacja.swift nagrywa PCM 16 kHz mono i sama łączy się z Soniox; „nagrywa” i słowa przyjdą przez Czat.zGlosu.
       if (natywny) {
         if (natywny.wczesnie && natywny.nagrywaj) natywny.nagrywaj();
@@ -1929,6 +1935,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
         glos.media = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       } catch (e) { glosKoniec(e && /NotAllowed|Security/.test(e.name) ? ZDANIA.mikrofon : ZDANIA.mikrofonBrak); return; }
       if (glos.stan === 'nic') { glosSprzatnij(); return; }
+      poziomGlosu(glos.media);
       const typ = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
       // Kawałki sprzed połączenia czekają tutaj; pusty kawałek (koniec dźwięku) idzie zawsze po nich.
       const kolejka = [];
@@ -2004,6 +2011,9 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       try { if (glos.rec && glos.rec.state !== 'inactive') glos.rec.stop(); } catch { /* już stoi */ }
       if (glos.media) glos.media.getTracks().forEach((t) => t.stop());
       glos.media = null;
+      if (glos.ac) { try { glos.ac.close(); } catch { /* zamknięty */ } }
+      glos.ac = null;
+      glos.analiza = null;
       glos.rec = null;
     }
     function glosStop(wyslijPo) {
@@ -2059,20 +2069,58 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       }
       if (glos.wyslij && pole.value.trim()) wyslij(pole.value);
     }
-    // Bezpiecznik ciszy: gdy po połączeniu z Soniox przez CISZA_MS nie padło żadne słowo, mikrofon gaśnie, nic nie idzie, a pod polem stoi, co się stało.
-    // Każde nowe słowo liczy od nowa. window.KM_CISZA_MS skraca ten czas w testach.
+    // Bezpiecznik ciszy: gdy przez CISZA_MS nie było głosu ani nowego słowa, mikrofon gaśnie, nic nie idzie, tekst zostaje w polu, a pod polem stoi, co się stało.
+    // Jeden zegar co 250 ms (glos.cisza; clearTimeout zatrzymuje też setInterval). window.KM_CISZA_MS, KM_START_NIC_MS, KM_START_MS i KM_PROG_GLOSU zmieniają czasy i próg w testach.
     const ciszaMs = () => Number(window.KM_CISZA_MS) || CISZA_MS;
-    function ciszaOdNowa() {
+    const startNicMs = () => Number(window.KM_START_NIC_MS) || START_NIC_MS, startKoniecMs = () => Number(window.KM_START_MS) || START_KONIEC_MS;
+    function ciszaStart() {
       clearTimeout(glos.cisza);
-      glos.cisza = 0;
-      if (glos.stan === 'nagrywa' || glos.stan === 'start') glos.cisza = setTimeout(glosCisza, ciszaMs());
+      Object.assign(glos, { od: Date.now(), slyszal: false, odlicza: false, nicNie: false });
+      glos.cisza = setInterval(ciszaTik, 250);
     }
-    function glosCisza() {
+    // Głos albo nowe słowo: licznik od nowa, a odliczanie i „Nic nie słyszę” znikają spod pola.
+    function ciszaOdNowa() {
+      glos.od = Date.now();
+      glos.slyszal = true;
+      if (glos.odlicza || glos.nicNie) { glos.odlicza = glos.nicNie = false; pokazGlos(); }
+    }
+    // Analizator poziomu na strumieniu mikrofonu (Android i strona). Bez AudioContext liczą się same słowa.
+    function poziomGlosu(media) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC || !media) return;
+        glos.ac = new AC();
+        const a = glos.ac.createAnalyser();
+        a.fftSize = 2048;
+        glos.ac.createMediaStreamSource(media).connect(a);
+        glos.analiza = { a, buf: new Float32Array(a.fftSize) };
+      } catch { glos.ac = null; glos.analiza = null; }
+    }
+    function ciszaTik() {
+      if (glos.stan !== 'nagrywa' && glos.stan !== 'start') { clearTimeout(glos.cisza); glos.cisza = 0; return; }
+      if (glos.analiza) {
+        glos.analiza.a.getFloatTimeDomainData(glos.analiza.buf);
+        let szczyt = 0;
+        for (const v of glos.analiza.buf) { const x = v < 0 ? -v : v; if (x > szczyt) szczyt = x; }
+        if (szczyt > (Number(window.KM_PROG_GLOSU) || PROG_GLOSU)) ciszaOdNowa();
+      }
+      const minelo = Date.now() - glos.od;
+      if (!glos.slyszal) {
+        if (minelo >= startKoniecMs()) { glosCisza(true); return; }
+        if (minelo >= startNicMs() && !glos.nicNie) { glos.nicNie = true; stan(ZDANIA.nicNieSlysze); if (hal.otwarty) halNapis(ZDANIA.nicNieSlysze); }
+        return;
+      }
+      const zostalo = ciszaMs() - minelo;
+      if (zostalo <= 0) { glosCisza(false); return; }
+      if (zostalo <= ODLICZ_MS) { glos.odlicza = true; const t = ZDANIA.odliczam(Math.ceil(zostalo / 1000)); if (stanL.textContent !== t) stan(t); }
+    }
+    function glosCisza(odStartu) {
+      clearTimeout(glos.cisza);
       glos.cisza = 0;
       if (glos.stan !== 'nagrywa' && glos.stan !== 'start') return;
       glos.wyslij = false;
       glosKoniec();
-      const t = ZDANIA.cisza(Math.round(ciszaMs() / 1000));
+      const t = odStartu ? ZDANIA.ciszaStart(Math.round(startKoniecMs() / 1000)) : ZDANIA.cisza(Math.round(ciszaMs() / 1000));
       stan(t, 9000);
       uz('mik', 'cisza');
       if (hal.otwarty) halNapis(t);
