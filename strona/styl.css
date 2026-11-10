@@ -359,7 +359,7 @@ body.okno main { margin-bottom: env(safe-area-inset-bottom); }
 .menu-cisza { display: grid; gap: 4px; padding: 12px 14px 4px; border-radius: 12px; background: var(--przycisk); box-shadow: 0 0 0 1px var(--wlos); }
 .menu-cisza-wiersz { display: flex; justify-content: space-between; gap: 16px; color: var(--tekst); }
 .menu-cisza-ile { font-weight: 600; font-variant-numeric: tabular-nums; }
-.menu-cisza input[type="range"] { width: 100%; height: 32px; margin: 0; accent-color: var(--akcent); }
+.menu-cisza input[type="range"] { width: 100%; height: 48px; margin: 0; accent-color: var(--akcent); }
 @media (prefers-color-scheme: dark) { .menu-cisza { box-shadow: 0 0 0 1px #48484a; } }
 .menu-otomoto button {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 0 14px; border: 0; border-radius: 12px;
