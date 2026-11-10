@@ -52,6 +52,29 @@
       try { localStorage.removeItem('auta-' + k); } catch { /* bez pamięci */ }
     },
   };
+  // Filtry Ofert zostają na urządzeniu (od 8.11.2026, Jacek: „jak mam 83, no to niech zostanie 83, a nie że zawsze wszystko wraca do defaultowego”).
+  // Skaner trzyma je w sessionStorage („we-filtry2:<misja>”), które znika z zamknięciem aplikacji. Ramka ma to samo pochodzenie i tę samą kartę co aplikacja,
+  // więc na starcie, zanim wczytają się ramki, odtwarzamy je z localStorage („auta-filtry”), a każdą zmianę kopiujemy z powrotem: zdarzenie storage z ramki,
+  // co 3 s i przy schowaniu aplikacji. „Wyczyść” w Skanerze zapisuje filtry z początku, więc też zostaje. Każde urządzenie ma swoje.
+  (() => {
+    const KLUCZ = 'auta-filtry';
+    let ost = '';
+    const zbierz = () => {
+      const m = {};
+      try { for (let i = 0; i < sessionStorage.length; i++) { const k = String(sessionStorage.key(i)); if (k.startsWith('we-filtry2:')) m[k] = sessionStorage.getItem(k); } } catch { /* bez pamięci */ }
+      return m;
+    };
+    const zapisz = () => { const m = zbierz(); if (!Object.keys(m).length) return; const s = JSON.stringify(m); if (s === ost) return; ost = s; try { localStorage.setItem(KLUCZ, s); } catch { /* pełna pamięć */ } };
+    try {
+      const m = JSON.parse(localStorage.getItem(KLUCZ) || '{}');
+      for (const [k, v] of Object.entries(m)) if (k.startsWith('we-filtry2:') && typeof v === 'string' && sessionStorage.getItem(k) === null) sessionStorage.setItem(k, v);
+      ost = JSON.stringify(zbierz());
+    } catch { /* bez pamięci */ }
+    addEventListener('storage', (e) => { if (e.storageArea === sessionStorage && String(e.key || '').startsWith('we-filtry2:')) zapisz(); });
+    setInterval(zapisz, 3000);
+    addEventListener('pagehide', zapisz);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) zapisz(); });
+  })();
   // Skąd pyta ta strona: komputer pisze to w dzienniku skanu i asystenta. Android ładuje ją spod adresu z plików aplikacji.
   const SKAD = location.protocol === 'auta:' ? 'iPhone' : location.hostname === 'appassets.androidplatform.net' ? 'Android' : 'przeglądarka';
   const DOBRY_KANAL = /^[a-z0-9-]{16,64}$/;
@@ -336,6 +359,59 @@
   // jesteśmy na pierwszym … wrócimy do głównego menu”): okno idzie za palcem, a puszczone po 72 px (albo po szybkim ruchu) otwiera sąsiednie auto w kolejności
   // z ekranu. Z pierwszego auta w prawo zamyka okno jak krzyżyk, z ostatniego w lewo odbija. Pion przewija okno jak dotąd, a pasek miniatur zdjęć przewija się
   // po swojemu. Na komputerze to samo dają strzałki ← i →. Okno przesuwa właściwość translate, więc własne położenie okna ze Skanera zostaje. Raz na dokument.
+  // Archiwum aut (od 8.11.2026, Jacek: „żeby można było dane auto … do archiwum takiego też wrzucić i potem sobie … daty i wszystkie dane porównywać”): w oknie auta,
+  // za sercem, przycisk ze skrzynką. Stuknięcie wysyła adres ogłoszenia na kanał pytań z polem co: 'archiwum', a komputer zapisuje całą kartę na stałe
+  // (wyniki\archiwum-aut.json w misji) i dokłada auto do sekcji „Archiwum” w Historii, wspólnej dla Jacka i Kasi. Drugie stuknięcie wyjmuje auto z archiwum.
+  // Stan przycisku leży w pamięci urządzenia (auta-archiwum), więc odpowiada od razu, także bez sieci.
+  const ZNAK_ARCH = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="4" rx="1"/><path d="M5 8.5v10a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-10"/><path class="km-arch-znak" d="M10 13.5h4"/></svg>';
+  const ZNAK_ARCH_JEST = ZNAK_ARCH.replace('<path class="km-arch-znak" d="M10 13.5h4"/>', '<path d="m9.2 14 2 2 3.6-3.8"/>');
+  const archiwumAut = (d) => {
+    if (!d || d.kmArchiwum || !d.body) return;
+    d.kmArchiwum = true;
+    const lista = () => { const l = pamiec.czytaj('archiwum', []); return Array.isArray(l) ? l : []; };
+    // Adres auta: odnośnik do ogłoszenia w oknie albo rekord katalogu (we-offline) dla ostatnio stukniętej karty: ten sam tytuł i cena, a przy kilku takich
+    // także miasto. Karta Skanera nie ma adresu w atrybutach, a tytuły się powtarzają („Toyota Corolla”).
+    let rekordy = null, karta = null;
+    d.addEventListener('click', (e) => { const k = e.target.closest && e.target.closest('.karta-produktu'); if (k) karta = k; }, true);
+    const cyfry = (s) => Number(String(s || '').replace(/[^\d]/g, '')) || 0;
+    const adres = (dl) => {
+      const a = dl.querySelector('a[href*="otomoto.pl/osobowe/oferta/"]');
+      if (a) return a.href.split('#')[0];
+      if (!karta) return '';
+      try { if (!rekordy) rekordy = ((JSON.parse(d.getElementById('we-offline').textContent).katalog || {}).rekordy || []); } catch { rekordy = []; }
+      const tyt = ((karta.querySelector('.tytul') || {}).textContent || '').trim(), c = karta.querySelector('.cena'), cena = c && c.firstChild ? cyfry(c.firstChild.textContent) : 0;
+      const linia = ((karta.querySelector('.linia') || {}).textContent || '');
+      let r = rekordy.filter((x) => x.tytul === tyt && Math.round(x.cena || 0) === cena && String(x.url || '').includes('otomoto.pl/osobowe/oferta/'));
+      if (r.length > 1) r = r.filter((x) => linia.includes(String((x.cechy || {}).lokalizacja || '').replace(/\s*\([^)]*\)$/, '')));
+      return r.length === 1 ? String(r[0].url).split('#')[0] : '';
+    };    const ustaw = (b, u) => { const jest = lista().includes(u); b.setAttribute('aria-pressed', String(jest)); const opis = jest ? 'Wyjmij z archiwum' : 'Zapisz w archiwum: zostanie po sprzedaży'; b.setAttribute('aria-label', opis); b.dataset.dymek = opis; b.innerHTML = jest ? ZNAK_ARCH_JEST : ZNAK_ARCH; };
+    d.kmAdres = adres;
+    let zegar = 0;
+    const wstaw = () => {
+      const dl = d.querySelector('dialog#okno[open]'), rz = dl && dl.querySelector('.okno-przyciski');
+      if (!rz) return;
+      const u = adres(dl);
+      let b = rz.querySelector('.km-archiwum');
+      if (!u) { if (b) b.remove(); return; }
+      if (!b) {
+        b = d.createElement('button');
+        b.type = 'button';
+        b.className = 'przycisk cichy km-archiwum';
+        b.addEventListener('click', () => {
+          const dl2 = d.querySelector('dialog#okno[open]'), u2 = dl2 && adres(dl2);
+          if (!u2) return;
+          const l = lista(), usun = l.includes(u2);
+          pamiec.zapisz('archiwum', usun ? l.filter((x) => x !== u2) : l.concat([u2]));
+          ustaw(b, u2);
+          fetch(`${SERWER}/${KANAL}-pytanie`, { method: 'POST', cache: 'no-store', body: JSON.stringify({ id: 'a-' + Math.random().toString(36).slice(2, 12), co: 'archiwum', url: u2, usun, autor: SKAD === 'iPhone' ? 'Kasia' : 'Jacek' }) }).catch(() => {});
+        });
+        const serce = rz.querySelector('.wybor-serce');
+        if (serce) serce.after(b); else rz.prepend(b);
+      }
+      if (b.dataset.url !== u) { b.dataset.url = u; ustaw(b, u); }
+    };
+    new d.defaultView.MutationObserver(() => { clearTimeout(zegar); zegar = setTimeout(wstaw, 50); }).observe(d.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+  };
   const przesuwanieAut = (d) => {
     if (!d || d.kmAuta) return;
     d.kmAuta = true;
@@ -481,80 +557,8 @@
     };
     if (dlg && window.MutationObserver) new MutationObserver(() => setTimeout(podpisz, 0)).observe(dlg, { attributes: true, attributeFilter: ['open'], childList: true });
   };
-  // Benzyna i manual (od 29.10.2026, Jacek w Fiszkach o przełączniku „Manual i benzyna”: „Oba”, czyli liczby rynku i oferty na liście). Katalog ma od tego dnia
-  // także SUV-y z benzyną z Pomorza, na start schowane filtrami Skanera „Paliwo: Hybryda” i „Skrzynia biegów: Automatyczna” ([raport] domyslne w mission.toml).
-  // Nad listą Ofert stoi pigułka: włączona zaznacza w tych filtrach Benzynę i Manualną tak, jak człowiek (zdarzenie change), więc Skaner sam przelicza wyniki
-  // i chipy, a pod rzędem staje karta z liczbami rynku: SUV-y z Pomorza od 2016 roku, do 250 tys. km i za 30–75 tys. zł, policzone z danych katalogu. Stan trzyma
-  // sam Skaner (sessionStorage), więc pigułka czyta go z pól. Bez filtra Paliwo (katalog bez benzyny, starszy plik) pigułki nie ma. Raz na dokument ramki.
-  const przelacznikRynku = (d) => {
-    if (!d || d === document || d.kmRynek || !d.body) return;
-    d.kmRynek = true;
-    const mk = (tag, a, tekst) => { const e = d.createElement(tag); for (const [k, v] of Object.entries(a || {})) e.setAttribute(k, v); if (tekst) e.textContent = tekst; return e; };
-    const zestaw = (k) => d.querySelector(`fieldset[data-klucz="${k}"]`);
-    const pole = (k, v) => { const z = zestaw(k); return z ? [...z.querySelectorAll('input[type="checkbox"]')].find((x) => x.value === v) || null : null; };
-    let liczby = null;
-    const rynek = () => {
-      if (liczby) return liczby;
-      try {
-        const s = d.getElementById('we-offline'), r = (JSON.parse(s.textContent).katalog || {}).rekordy || [];
-        const suv = r.filter((x) => /^otomoto-pomorskie/.test(x.zrodlo || '') && x.cechy && /suv/i.test(x.cechy.nadwozie || '') && x.cechy.rok >= 2016 && x.cechy.przebieg_km <= 250000 && !((x.cechy.cena ?? x.cena) > 75000));
-        const ile = (pal, skr) => suv.filter((x) => new RegExp(pal, 'i').test(x.cechy.paliwo || 'hybr') && new RegExp(skr, 'i').test(x.cechy.skrzynia || 'autom')).length;
-        liczby = [['hybryda z automatem', ile('hybr', 'autom')], ['benzyna z automatem', ile('benz', 'autom')], ['benzyna z manualem', ile('benz', 'manual')]];
-      } catch { liczby = []; }
-      return liczby;
-    };
-    const styl = mk('style', { id: 'kasiomobile-rynek' });
-    // Włączona ma podwójną klasę, żeby wygrać ze szkłem siatki (.przycisk:not(.glowny):not(.przycisk-nowe)), które w oknie na komputerze stoi w arkuszu później.
-    styl.textContent = '.przycisk.km-rynek{position:relative;flex:none;min-height:40px;padding:0 16px;border-radius:20px;font-weight:600}'
-      + '.przycisk.km-rynek::before{content:"";position:absolute;inset:-4px 0}'
-      + '.przycisk.km-rynek.km-rynek[aria-pressed="true"]{background-color:var(--akcent)!important;color:var(--na-akcencie)!important;background-image:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,0) 34%,rgba(0,0,0,.1))!important;box-shadow:inset 1px 1px 0 rgba(255,255,255,.38),inset -1px -1px 0 rgba(0,0,0,.2),2px 3px 10px color-mix(in srgb,var(--akcent) 42%,transparent)!important}'
-      + '.km-rynek-karta{margin:8px 0 0;padding:10px 14px;border:1px solid var(--ramka);border-radius:12px;background:var(--tlo-2);color:var(--tekst);font-size:14px;line-height:1.45}'
-      + '.km-rynek-karta b{font-weight:600;font-variant-numeric:tabular-nums}';
-    const przycisk = mk('button', { type: 'button', class: 'przycisk maly km-rynek', 'aria-pressed': 'false' }, 'Benzyna i manual');
-    const karta = mk('p', { class: 'km-rynek-karta', hidden: '' });
-    const wlaczone = () => Boolean((pole('paliwo', 'Benzyna') || {}).checked || (pole('skrzynia', 'Manualna') || {}).checked);
-    let opis = '';
-    const odswiez = () => {
-      const na = wlaczone();
-      if (przycisk.getAttribute('aria-pressed') !== String(na)) przycisk.setAttribute('aria-pressed', String(na));
-      karta.hidden = !na;
-      // Chipy Skanera „Paliwo: Hybryda, Benzyna” i „Skrzynia biegów: Automatyczna, Manualna” mówią to samo co pigułka, więc przy niej znikają.
-      for (const c of d.querySelectorAll('.aktywne button')) {
-        const t = (c.textContent || '').trim();
-        const dubel = na && ((/^Paliwo:/.test(t) && /Hybryda/.test(t) && /Benzyna/.test(t)) || (/^Skrzynia bieg/.test(t) && /Automatyczna/.test(t) && /Manualna/.test(t)));
-        if (c.hidden !== dubel) c.hidden = dubel;
-      }
-      const l = na ? rynek() : [];
-      const nowy = l.map(([n, i]) => n + i).join();
-      if (!na || nowy === opis) return;
-      opis = nowy;
-      karta.replaceChildren(d.createTextNode('SUV-y z Pomorza od 2016 roku, do 250 tys. km i 75 tys. zł: '),
-        ...l.flatMap(([n, i], j) => [d.createTextNode((j ? ' · ' : '') + n + ' '), mk('b', null, String(i))]), d.createTextNode('.'));
-    };
-    przycisk.addEventListener('click', () => {
-      const na = !wlaczone();
-      for (const [k, v] of [['paliwo', 'Benzyna'], ['skrzynia', 'Manualna']]) {
-        let c = pole(k, v);
-        // Opcja bez wyników przy innych filtrach (Manualna przy samej hybrydzie) stoi pod „Pokaż wszystkie”.
-        if (!c) { const w = zestaw(k) && zestaw(k).querySelector('.wiecej-opcji'); if (w) { w.click(); c = pole(k, v); } }
-        if (c && c.checked !== na) { c.checked = na; c.dispatchEvent(new Event('change', { bubbles: true })); }
-      }
-      odswiez();
-    });
-    let zegar = 0;
-    const wstaw = () => {
-      if (!zestaw('paliwo')) { przycisk.remove(); karta.remove(); return; }
-      const w = d.querySelector('.narzedzia > .wiersz');
-      if (!w) return;
-      if (!styl.isConnected) d.head.append(styl);
-      if (przycisk.parentNode !== w) w.insertBefore(przycisk, w.querySelector('.aktywne'));
-      if (karta.previousElementSibling !== w) w.after(karta);
-      odswiez();
-    };
-    wstaw();
-    new d.defaultView.MutationObserver(() => { clearTimeout(zegar); zegar = setTimeout(wstaw, 60); }).observe(d.body, { childList: true, subtree: true });
-    d.addEventListener('change', () => setTimeout(odswiez, 0), true);
-  };
+  // Pigułka „Benzyna i manual” nad listą Ofert (29.10–8.11.2026) usunięta: Jacek, 8.11.2026: „dajemy sobie spokój … filtrem pokazującym benzyna i manuale, bo to bez sensu jest”.
+  // Domyślne filtry Skanera (Paliwo: Hybryda, Skrzynia biegów: Automatyczna) zostają; benzynę pokazuje zwykły filtr Paliwo.
   // Wskaźnik miejsca na liście ofert (28.10.2026, Jacek: „wskaźnik miejsca na stronie jest potrzebny przy przewijaniu”): przy przewijaniu listy przy prawej krawędzi
   // stoi pigułka „5 z 18”, która jedzie razem z przewijaniem i gaśnie 0,9 s po jego końcu (styl.css, .miejsce-listy). Liczy się auto, które przecina linię
   // na 40% wysokości ramki, a na samym dole ostatnie. Lista krótsza niż 4 auta wskaźnika nie ma. Raz na dokument ramki.
@@ -864,7 +868,7 @@
         if (document.body.dataset.szklo) d.documentElement.dataset.kmWyglad = '5'; else delete d.documentElement.dataset.kmWyglad;
         swiatloPrzyciskow(d);
         ciszaKolka(d);
-        przesuwanieAut(d); wskaznikMiejsca(d); przelacznikRynku(d);
+        przesuwanieAut(d); wskaznikMiejsca(d); archiwumAut(d);
         kolkoHal(d);
         d.documentElement.style.setProperty('--km-lewo', cs.paddingLeft);
         d.documentElement.style.setProperty('--km-prawo', cs.paddingRight);
@@ -2441,7 +2445,10 @@
     // tym trzepiesz, to go nie rusza … szybko enough … wyrzuca z ekranu. A potem się pojawia w ten sam sposób. Skakuje na ekran i leci do góry … przykleja się”): siła to średnia
     // wychyłów potrząśnięcia. Do 17 m/s² kółko tylko podskakuje po ekranie i zostaje tam, gdzie stanie; mocniej leci w stronę wychyłu, dwa razy odbija się od brzegów i wylatuje.
     // Drugie potrząśnięcie wrzuca je spod dolnego brzegu, a magnes ciągnie je do doku u góry. Przy ograniczonym ruchu bez lotu: od razu schowane albo od razu w doku.
-    const TRZES = { prog: 13, ile: 4, okno: 1000, przerwa: 1200, wychyl: 250, wyrzut: 17 };
+    // Od 8.11.2026 czulej (Jacek: „Jest za mało czułe. Trzeba naprawdę nim trząść … Make it less painful”): 3 wychyły ponad 9 m/s² w 1,2 s zamiast 4 ponad 13 w 1 s,
+    // a każde takie potrząśnięcie od razu chowa albo przywraca kółko. Dawne samo podskakiwanie przy słabszym (do 17 m/s²) zniknęło, bo wyglądało, jakby nic nie zadziałało.
+    // 9.11.2026 jeszcze czulej (Jacek: „musiałem mocno trząść, a tak nie chcemy”): 3 wychyły ponad 6 m/s² w 1,5 s. Chodzenie zostaje poniżej (2–5 m/s²).
+    const TRZES = { prog: 6, ile: 3, okno: 1500, przerwa: 1000, wychyl: 250, wyrzut: 6 };
     let piki = [], poTrzes = -1e9, grawitacja = null;
     function trzesienie(sila = TRZES.wyrzut, os = 0, zn = 1) {
       const wraca = p.classList.contains('schowany');
@@ -2467,7 +2474,7 @@
       const zLotu = zatrzymajLot(), q = zLotu || miejsce(stan);
       if (g) { clearTimeout(g.zegar); g = null; p.classList.remove('trzyma', 'ciagniety'); }
       // Kierunek: oś X telefonu to oś X ekranu, oś Y telefonu rośnie w górę ekranu, a oś Z (do patrzącego) rzuca w pionie. Bezwładność niesie kółko przeciwnie do wychyłu.
-      const v = Math.min(5200, Math.max(1500, sila * 150)), k = -zn, skos = 0.35 * v;
+      const v = Math.min(5200, Math.max(3600, sila * 200)), k = -zn, skos = 0.35 * v;
       const [vx, vy] = os === 0 ? [k * v, -skos] : os === 1 ? [skos, -k * v] : [skos, k * v];
       if (sila < TRZES.wyrzut) { obudz(); if (malyRuch.matches) return; rzut(q.x, q.y, vx * 0.5, vy * 0.5); return; }
       const schowaj = () => { p.classList.add('schowany'); powiedz('Asystent schowany. Potrząśnij telefonem, żeby wrócił.'); };
@@ -2705,13 +2712,13 @@
     let tytul = '', tresc = '';
     try {
       const d = s && s.el.contentDocument, okno = d && d.querySelector('dialog[open]');
-      if (okno) { const h = okno.querySelector('h1, h2, h3'); tytul = h ? h.textContent : ''; tresc = okno.innerText || okno.textContent; }
+      if (okno) { const h = okno.querySelector('h1, h2, h3'); tytul = h ? h.textContent : ''; tresc = okno.innerText || okno.textContent; const u = d.kmAdres ? d.kmAdres(okno) : ''; if (u) tresc = 'adres ' + u + '. ' + tresc; }
       else if (d) { const h = d.querySelector('h1'); tytul = h && h.getClientRects().length ? h.textContent : ''; }
     } catch { /* strona się jeszcze wczytuje */ }
     tytul = czysc(tytul).slice(0, 80);
-    tresc = czysc(tresc).slice(0, 360);
+    tresc = czysc(tresc).slice(0, 1600);
     return { krotko: [nazwa, tytul || pig].filter(Boolean).join(' · ').slice(0, 48),
-      pelny: `zakładka ${nazwa}${pig ? ', część ' + pig : ''}${tytul ? ', otwarte: ' + tytul : ''}${tresc ? '. Treść okna: ' + tresc : ''}`.slice(0, 480) };
+      pelny: `zakładka ${nazwa}${pig ? ', część ' + pig : ''}${tytul ? ', otwarte: ' + tytul : ''}${tresc ? '. Treść okna: ' + tresc : ''}`.slice(0, 1800) };
   }
   // Nawigacja wyjeżdża spod belki za palcem (czat.js, belka): p od 0 do 1, null kończy i oddaje ją stylom.
   let zegarRuchu = 0;

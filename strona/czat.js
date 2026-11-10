@@ -57,7 +57,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
   // pigułka Historia w Ogłoszeniach, a „poradnik” zakładka Poradnik.
   const BIERNIK = { katalog: 'Oferty', nowe: 'Oferty', modele: 'Podium', kredyt: 'Finanse', historia: 'Historię', poradnik: 'Poradnik' };
   // Podpowiedzi w barwach zakładek, których dotyczą (od 26.10.2026): Podium niebieskie, Oferty zielone, Poradnik fioletowy, Finanse pomarańczowe.
-  const PODPOWIEDZI = [['Najbezpieczniejsze auto do 75 tys. zł?', 'modele'], ['Co nowego dziś na Otomoto?', 'katalog'], ['Czy Corolla kombi zmieści psa?', 'poradnik'], ['Ile wyjdzie rata za 60 tys. zł?', 'kredyt']];
+  const PODPOWIEDZI = [['Najbezpieczniejsze auto do 90 tys. zł?', 'modele'], ['Co nowego dziś na Otomoto?', 'katalog'], ['Czy Corolla kombi zmieści psa?', 'poradnik'], ['Ile wyjdzie rata za 60 tys. zł?', 'kredyt']];
   // Własne pytania na stałe (od 27.10.2026; Jacek: „możliwość edytowania i ustawienia sobie własnych pytań na stałe, a jeden klik za pytanie”): na pustej rozmowie
   // zamiast czterech stałych podpowiedzi stoi lista z pamięci telefonu (za pierwszym razem te same cztery). Najwyżej 12 pytań po 600 znaków (od wieczora 27.10.2026; Jacek: „killer feature”: pytanie może być całym poleceniem, które się przewija).
   const PYTANIA_MAX = 12, PYTANIE_DL = 600;
@@ -235,7 +235,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const gora = el('div', { class: 'czat-gora' }, tryb === 'arkusz' ? el('span', { class: 'czat-uchwyt', 'aria-hidden': 'true' }) : null, historiaB, tytulL, miniChip, wskazB, rozwinB, poziomB, nowaB, zamknijB);
     const lista = el('div', { class: 'czat-lista', role: 'log', 'aria-live': 'polite', 'aria-label': 'Rozmowa z asystentem' });
     const stanL = el('p', { class: 'czat-stan', role: 'status', hidden: true });
-    const pole = el('textarea', { class: 'czat-tekst', rows: '1', maxlength: '6000', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
+    const pole = el('textarea', { class: 'czat-tekst', rows: '1', placeholder: 'Zapytaj o auta…', 'aria-label': 'Pytanie do asystenta', enterkeyhint: 'send', autocomplete: 'off' });
     const mikB = przycisk('mikrofon', 'Powiedz pytanie', 'czat-mik');
     mikB.hidden = true;
     const wyslijB = przycisk('wyslij', 'Wyślij', 'czat-wyslij');
@@ -1169,11 +1169,79 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
           });
       });
     }
+    // ---------------------------------------------------------------- Brama Opusa w telefonie (od 8.11.2026)
+    // Jacek: „Kasiomobile mogła korzystać z Opusa 5.5 nawet gdy mój laptop jest wyłączony”. Na Androidzie (most AutaBrama, Brama.java) pytanie idzie najpierw
+    // do Bramy w samym telefonie, z kontekstem, który komputer wysyła na kanał „<kanał>-kontekst” (telefon trzyma ostatni w pamięci), a z historią z tej rozmowy.
+    // Gdy Bramy w telefonie nie ma albo nie odpowie, pytanie idzie jak dotąd do komputera. W telefonie nie ma internetu dla modelu ani przekazywania zmian.
+    const lokalne = new Map();
+    // Powód odmowy Bramy w telefonie (od 9.11.2026): gdy laptop też nie odpowie, telefon mówi ten powód zamiast „Komputer nie odpowiedział”.
+    let bladTel = '';
+    let kontekstCzas = 0;
+    async function pobierzKontekst() {
+      if (Date.now() - kontekstCzas < 600000) return;
+      kontekstCzas = Date.now();
+      try {
+        const r = await fetch(`${SERWER}/${o.kanal}-kontekst/json?poll=1&since=12h`, { cache: 'no-store' });
+        const w = (await r.text()).trim().split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((x) => x && x.attachment && x.attachment.url).pop();
+        if (!w) return;
+        const k = await (await fetch(w.attachment.url, { cache: 'no-store' })).json();
+        if (k && typeof k.tekst === 'string' && typeof k.prompt === 'string') pamiec.zapisz('kontekst', k);
+      } catch { /* bez sieci zostaje ostatni */ }
+    }
+    if (window.AutaBrama) pobierzKontekst();
+    window.__bramaOdp = (id, kod, tekst) => { const c = lokalne.get(id); if (c) { lokalne.delete(id); c(kod, tekst); } };
+    function zJsona(t) {
+      const a = t.indexOf('{'), b = t.lastIndexOf('}');
+      if (a < 0 || b <= a) return t.trim() ? { odpowiedz: t.trim() } : null;
+      const s = t.slice(a, b + 1);
+      for (const j of [s, s.replace(/„([^"”\n]{0,80})"/g, '„$1”')]) { try { return JSON.parse(j); } catch { /* następna */ } }
+      const m = /"odpowiedz"\s*:\s*"([\s\S]*?)"\s*,\s*"/.exec(s);
+      return m ? { odpowiedz: m[1].replace(/\\n/g, '\n') } : null;
+    }
+    function lokalnie(tresc, ms) {
+      let ma = false; try { ma = !!(window.AutaBrama && window.AutaBrama.jest()); } catch { ma = false; }
+      const k = pamiec.czytaj('kontekst', null);
+      // Bardzo długie pytanie (ponad 150 tys. znaków) idzie do laptopa, który dzieli je na części (od 8.11.2026).
+      if (!ma || !k || !k.tekst || tresc.hal || String(tresc.q || '').length > 150000) return Promise.resolve(null);
+      const wys = ['low', 'medium', 'high', 'xhigh', 'max'].includes(tresc.poziom) ? tresc.poziom : 'high';
+      const dlugosc = { low: 'Długość odpowiedzi: krótko, 1–3 zdania.', xhigh: 'Długość odpowiedzi: dłużej i dokładniej, do 12 punktów, z uzasadnieniem.', max: 'Długość odpowiedzi: pełna i wyczerpująca, tyle, ile temat wymaga, punktami, z liczbami z danych i wnioskiem na końcu.' }[wys] || '';
+      const wczesniej = historia.filter((x) => x.tekst && !x.blad).slice(-13, -1).map((x) => (x.kto === 'ja' ? 'Pytanie: ' : 'Odpowiedź: ') + x.tekst).join('\n');
+      const tekst = [wczesniej ? 'Wcześniej w tej rozmowie:\n\n' + wczesniej : '', 'Pyta: ' + autorZ(o.skad) + '.', dlugosc, tresc.ekran ? 'Na ekranie jest teraz: ' + tresc.ekran + ' Gdy pytanie mówi o „tym aucie” albo „tym”, chodzi o to, co na ekranie.' : '', 'Pytanie: ' + tresc.q].filter(Boolean).join('\n\n');
+      const cialo = JSON.stringify({ model: 'opus', max_tokens: wys === 'max' ? 16000 : wys === 'xhigh' ? 8000 : 4000, output_config: { effort: wys },
+        system: k.prompt + '\n\nTa odpowiedź powstaje w samym telefonie, bez komputera: pól czytaj, wSieci i zmiana nie używaj (zostaw null).\n\nTreść pliku kontekst.md:\n\n' + k.tekst,
+        messages: [{ role: 'user', content: tekst }] });
+      const id = losowe();
+      return new Promise((ok) => {
+        lokalne.set(id, (kod, odp) => {
+          if (kod === -1) { ok({ zatrzymane: true }); return; }
+          let o2 = null; try { o2 = JSON.parse(odp); } catch { o2 = null; }
+          const t = o2 && Array.isArray(o2.content) ? o2.content.filter((x) => x && x.type === 'text').map((x) => x.text).join('') : '';
+          bladTel = kod === 429 && /kredyt/i.test(odp) ? 'Skończyły się kredyty Kiro, więc asystent teraz nie odpowie. Odpowie, gdy kredyty wrócą.' : kod === 200 ? '' : bladTel;
+          const w = kod === 200 ? zJsona(t) : null;
+          if (!w || !String(w.odpowiedz || '').trim()) { ok(null); return; }
+          const z = { katalog: 'katalog', modele: 'modele', kredyt: 'kredyt', poradnik: 'poradnik', historia: 'historia' }[w.zakladka] || null;
+          const pokaz = w.model && k.modele && k.modele[w.model] ? { zakladka: 'modele', model: w.model, nazwa: k.modele[w.model].n + ' ' + k.modele[w.model].l } : z ? { zakladka: z } : null;
+          const linki = (Array.isArray(w.linki) ? w.linki : []).filter((l) => l && /^https:/.test(String(l.adres || '')) && k.tekst.includes(String(l.adres))).slice(0, 3);
+          ok({ odpowiedz: String(w.odpowiedz).replace(/\*\*/g, ''), linki, pokaz, zTelefonu: true });
+        });
+        try { window.AutaBrama.zapytaj(id, cialo, ms); } catch { lokalne.delete(id); ok(null); }
+      });
+    }
+    async function zapytajGdzies(tresc, ms, q) {
+      const d = await lokalnie(tresc, ms - 10000);
+      if (d) return d;
+      // Od 9.11.2026 brak kredytów w telefonie widać od razu (Brama Opusa: zamiast cichego przejścia na laptopa), a pytanie i tak idzie do komputera w domu.
+      // Telefon i laptop korzystają z tego samego konta Kiro (9.11.2026: oba „0 z 1212”), więc przy braku kredytów nie czekamy 90 s na laptopa.
+      if (bladTel) return { blad: bladTel };
+      const z = await zapytaj(tresc, ms, q);
+      return !z && bladTel ? { blad: bladTel } : z;
+    }
     // Stop (od 7.11.2026, Jacek: „musi być opcja … do przerwania toku myślenia. Jak się to źle wpisało, to po chuj ma mielić. Zatrzymujemy”):
     // w trakcie odpowiedzi Wyślij jest kwadratem. Telefon przestaje czekać (późniejsza odpowiedź przepada, bo jej nie ma w „czeka”), a pytanie wraca
     // do pola do poprawy. Komputer kończy swoje w tle; następne pytanie idzie z polem popraw, więc komputer zapomina w tej rozmowie poprzednie.
     let poprawka = 0;
     function zatrzymaj() {
+      for (const [id, c] of [...lokalne]) { lokalne.delete(id); c(-1, ''); }
       for (const [id, c] of [...czeka]) { if (!c.q) continue; czeka.delete(id); clearTimeout(c.zegar); c.ok({ zatrzymane: true }); }
       zapiszCzekajace();
       if (!czeka.size) zamknijStrumien();
@@ -1244,13 +1312,18 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       usunPusto();
       lista.append(mysli);
       naDol();
+      // Licznik czasu przy kropkach (od 8.11.2026): po 10 s widać, ile sekund komputer już myśli, więc długa odpowiedź nie wygląda na zawieszenie. Stop przerywa.
+      const odMysli = Date.now(), licznik = el('span', { class: 'czat-mysli-czas' }), zegarMysli = setInterval(() => { const s = Math.round((Date.now() - odMysli) / 1000); if (s >= 10 && mysli) { if (!licznik.isConnected) mysli.append(licznik); licznik.textContent = `Myślę ${s} s`; } }, 1000);
       // Z małego okna komputer dostaje też opis tego, co widać na ekranie (pole „w”), a odpowiada polem „poza” (od 27.10.2026 wieczorem).
       const widok = mini && o.widok ? o.widok() : null;
       const wskazano = !czekanie && mini && Boolean(wskaz);
       const wPole = czekanie ? '' : opisDlaKomputera(widok);
+      // Asystent wie, na co patrzysz (od 9.11.2026): z dużego okna też idzie opis ekranu (pole „ekran”), bez krótkiej odpowiedzi małego okienka.
+      const ekranW = !mini && !czekanie && o.widok ? o.widok() : null, ekran = ekranW && ekranW.pelny ? String(ekranW.pelny) : '';
       const popraw = czekanie ? 0 : Number(poprawka) || 0;
       if (!czekanie) poprawka = 0;
-      const d = await (czekanie || zapytaj(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '', poziom }, wPole ? { w: wPole } : {}, popraw ? { popraw } : {}), poziom === 'max' ? 200000 : poziom === 'xhigh' ? 140000 : CZEKAJ_MS, q));
+      const d = await (czekanie || zapytajGdzies(Object.assign({ q, rozmowa: rozmowa(), z: (o.zakladka && o.zakladka()) || '', poziom }, wPole ? { w: wPole } : {}, ekran ? { ekran } : {}, popraw ? { popraw } : {}), poziom === 'max' ? 305000 : poziom === 'xhigh' ? 215000 : CZEKAJ_MS, q));
+      clearInterval(zegarMysli);
       mysli.remove();
       mysli = null;
       pracuje = false;
@@ -1288,7 +1361,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     function wyslij(t) {
       if (edycja.aktywna) { if (String(t || '').trim()) glosBezWysylki(); return zapiszPytanie(t); }
       // Do 7.11.2026 pytanie było ucinane do 600 znaków, więc długie dyktowanie przepadało (Jacek: „nagrało tylko tyle, ile się nagra”). Teraz 6000.
-      const q = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 6000);
+      const q = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 4000000);
       if (!q || pracuje) return false;
       glosBezWysylki();
       if (hal.otwarty) { uz('hal-pytanie', q); pole.value = ''; bezCofnijPola = true; rosnij(); przyciski(); halZadaj(q); return true; }
@@ -1353,6 +1426,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       if (tryb === 'strona') return;
       doRozmowy = 0;
       poCzasie();
+      if (window.AutaBrama) pobierzKontekst();
       pobierzWspolne(() => { if (widokHistorii === 'historia') pokazHistorie('historia', true); });
       // Małe okno tylko na telefonie, w arkuszu. Otwarte małe okno rozwija się na cały ekran, gdy ktoś otwiera czat zwykłym stuknięciem.
       const malo = m === true && tryb === 'arkusz' && innerWidth < 760;
@@ -2186,7 +2260,22 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     zapiszCzekajace();
     const wrocDoRozmowy = () => { if (!doRozmowy || Date.now() - doRozmowy > 600000) return false; doRozmowy = 0; otworz(); return true; };
     const wstecz = () => { if (hal.otwarty) { halZamknij(); return true; } if (zamknijMenu(true)) return true; if (mini && otwarty()) { zamknij(); return true; } if (edycja.aktywna) { edytujPytania(false); return true; } if (widokHistorii) { wsteczHistorii(); return true; } if (!otwarty()) return false; zamknij(); return true; };
-    const api = { otworz, mini: () => otworz(true), miniOtwarty: () => mini && otwarty(), zamknij, przelacz: () => (otwarty() ? zamknij() : otworz()), otwarty, wyslij, zGlosu, korzen, pracuje: () => pracuje, wrocDoRozmowy, wstecz, hal: halOtworz, halOtwarty: () => hal.otwarty };
+    // Wpis „O tym aucie …” z ikonki na karcie Ofert (od 9.11.2026): otwiera rozmowę, dopisuje tekst za tym, co już było w polu, i stawia kursor na końcu.
+    function zapytajO(t) {
+      if (hal.otwarty) return;
+      otworz();
+      if (widokHistorii) rysuj();
+      const bylo = pole.value.replace(/\s+$/, '');
+      if (bylo) zapiszPisane(bylo);
+      pole.value = bylo ? bylo + '\n' + t : t;
+      bezCofnijPola = true;
+      rosnij();
+      przyciski();
+      pole.focus({ preventScroll: true });
+      try { pole.setSelectionRange(pole.value.length, pole.value.length); } catch { /* starsze pole */ }
+      pole.scrollTop = pole.scrollHeight;
+    }
+    const api = { zapytajO, otworz, mini: () => otworz(true), miniOtwarty: () => mini && otwarty(), zamknij, przelacz: () => (otwarty() ? zamknij() : otworz()), otwarty, wyslij, zGlosu, korzen, pracuje: () => pracuje, wrocDoRozmowy, wstecz, hal: halOtworz, halOtwarty: () => hal.otwarty };
     aktywny = api;
     return api;
   }

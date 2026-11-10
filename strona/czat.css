@@ -646,3 +646,7 @@ body:not(.czat-otwarty) .czat-ikonka.czat-plywak.schowany:not(.ciagniety):not(.t
 .czat-zrzut { display: inline-block; padding: 4px 10px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--cz-ramka); color: var(--cz-tekst2); font-size: 14px; }
 .czat-obraz-pelny { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0, 0, 0, .86); cursor: zoom-out; }
 .czat-obraz-pelny img { max-width: 100%; max-height: 100%; border-radius: 8px; touch-action: pinch-zoom; }
+
+/* Licznik czasu przy kropkach (od 8.11.2026). */
+.czat-mysli-czas { align-self: center; margin-left: 10px; color: var(--cz-tekst2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.czat-mysli { flex-direction: row; align-items: center; }
