@@ -355,6 +355,12 @@ body.okno main { margin-bottom: env(safe-area-inset-bottom); }
   background: var(--tlo); box-shadow: 0 0 0 .5px var(--wlos), 0 2px 6px var(--cien), 0 12px 32px var(--cien-mocny);
 }
 .menu-otomoto-tytul { margin: 4px 8px 0; color: var(--tekst2); font-size: 13px; font-weight: 600; }
+/* Suwak ciszy mikrofonu (od 10.11.2026): blok z ramką jak wiersze menu, napis i liczba w jednym rzędzie, suwak na całą szerokość z celem 48 px. */
+.menu-cisza { display: grid; gap: 4px; padding: 12px 14px 4px; border-radius: 12px; background: var(--przycisk); box-shadow: 0 0 0 1px var(--wlos); }
+.menu-cisza-wiersz { display: flex; justify-content: space-between; gap: 16px; color: var(--tekst); }
+.menu-cisza-ile { font-weight: 600; font-variant-numeric: tabular-nums; }
+.menu-cisza input[type="range"] { width: 100%; height: 32px; margin: 0; accent-color: var(--akcent); }
+@media (prefers-color-scheme: dark) { .menu-cisza { box-shadow: 0 0 0 1px #48484a; } }
 .menu-otomoto button {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 0 14px; border: 0; border-radius: 12px;
   background-color: var(--przycisk); background-image: var(--g3d); color: var(--tekst); text-align: left;

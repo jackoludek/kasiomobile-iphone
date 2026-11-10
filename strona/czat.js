@@ -1850,10 +1850,11 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     const KONF_SONIOX = { model: 'stt-rt-v5', audio_format: 'auto', language_hints: ['pl'], enable_endpoint_detection: true, max_endpoint_delay_ms: 1000, context: { terms: ['odbiór', 'bez odbioru'] } };
     // W trybie HAL mikrofon słucha po angielsku i po polsku i podaje język każdego słowa (token.language), a pytanie niesie ten język do komputera.
     const konfSoniox = () => (hal.otwarty ? Object.assign({}, KONF_SONIOX, { language_hints: ['en', 'pl'], enable_language_identification: true }) : KONF_SONIOX);
-    // Bezpiecznik ciszy 12 s (od 10.11.2026, Jacek przez Dyktowanie: „12 s, jak mówiłem”, wszędzie; w telefonie zapomina wyłączyć nagrywanie, a za rozpoznawanie płaci).
+    // Bezpiecznik ciszy (od 10.11.2026, Jacek przez Dyktowanie: w telefonie zapomina wyłączyć nagrywanie, a za rozpoznawanie płaci). Wieczorem Jacek: „6 sekund jako start
+    // jest dobrym punktem … w ustawieniach musi też być suwak … od 2 sekund do 20”. Suwak stoi w menu pod logo (app.js), a wybór leży w localStorage „kasiomobile-cisza-s”.
     // Licznik rusza po pierwszym głosie albo słowie; przed nim bezpiecznik startu: po 8 s „Nic nie słyszę”, po 20 s koniec. Ostatnie 5 s odlicza pod polem.
     // Głos to szczyt próbki ponad 1500 w skali 16 bit, jak w Dyktowaniu; mierzy go analizator na strumieniu mikrofonu (na iPhonie powłoka nie daje dźwięku, więc tam liczą się słowa).
-    const CISZA_MS = 12000, START_NIC_MS = 8000, START_KONIEC_MS = 20000, ODLICZ_MS = 5000, PROG_GLOSU = 1500 / 32768;
+    const CISZA_MS = 6000, START_NIC_MS = 8000, START_KONIEC_MS = 20000, ODLICZ_MS = 5000, PROG_GLOSU = 1500 / 32768;
     // „Bez odbioru” sprawdzamy przed „odbiorem”. Wielkość liter, kropka i inne znaki na końcu nie mają znaczenia, a „od biór” rozdzielone przez Soniox też się liczy.
     const KONIEC_BEZ = /(^|[^\p{L}\p{N}])bez\s+od\s?bi[oó]r(?:u)?[^\p{L}\p{N}]*$/iu;
     const KONIEC_ODBIOR = /(^|[^\p{L}\p{N}])od\s?bi[oó]r[^\p{L}\p{N}]*$/iu;
@@ -2071,7 +2072,10 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
     }
     // Bezpiecznik ciszy: gdy przez CISZA_MS nie było głosu ani nowego słowa, mikrofon gaśnie, nic nie idzie, tekst zostaje w polu, a pod polem stoi, co się stało.
     // Jeden zegar co 250 ms (glos.cisza; clearTimeout zatrzymuje też setInterval). window.KM_CISZA_MS, KM_START_NIC_MS, KM_START_MS i KM_PROG_GLOSU zmieniają czasy i próg w testach.
-    const ciszaMs = () => Number(window.KM_CISZA_MS) || CISZA_MS;
+    const ustawionaCisza = () => { try { const s = Number(JSON.parse(localStorage.getItem('kasiomobile-cisza-s'))); return s >= 2 && s <= 20 ? Math.round(s) * 1000 : 0; } catch { return 0; } };
+    const ciszaMs = () => Number(window.KM_CISZA_MS) || ustawionaCisza() || CISZA_MS;
+    // Odliczanie pod polem: ostatnie 5 s przy długiej ciszy, a przy krótkiej połowa czasu, ale nie mniej niż 2 s, żeby oddech nie wywoływał napisu.
+    const odliczMs = () => Math.min(ODLICZ_MS, Math.max(ciszaMs() / 2, 2000));
     const startNicMs = () => Number(window.KM_START_NIC_MS) || START_NIC_MS, startKoniecMs = () => Number(window.KM_START_MS) || START_KONIEC_MS;
     function ciszaStart() {
       clearTimeout(glos.cisza);
@@ -2112,7 +2116,7 @@ const autorZ = (skad) => (skad === 'iPhone' || (skad !== 'Android' && skad !== '
       }
       const zostalo = ciszaMs() - minelo;
       if (zostalo <= 0) { glosCisza(false); return; }
-      if (zostalo <= ODLICZ_MS) { glos.odlicza = true; const t = ZDANIA.odliczam(Math.ceil(zostalo / 1000)); if (stanL.textContent !== t) stan(t); }
+      if (zostalo <= odliczMs()) { glos.odlicza = true; const t = ZDANIA.odliczam(Math.ceil(zostalo / 1000)); if (stanL.textContent !== t) stan(t); }
     }
     function glosCisza(odStartu) {
       clearTimeout(glos.cisza);

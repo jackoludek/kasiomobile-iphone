@@ -1701,6 +1701,17 @@
         menuOtomoto.append(b);
       }
     }
+    // Bezpiecznik ciszy mikrofonu (od 10.11.2026, Jacek: „6 sekund jako start … w ustawieniach musi też być suwak … od 2 sekund do 20”). Czyta go czat.js
+    // (klucz „kasiomobile-cisza-s”), więc zmiana działa od następnego dyktowania. Strzałki w lewo i w prawo zmieniają o sekundę.
+    {
+      let s = 6;
+      try { const v = Number(JSON.parse(localStorage.getItem('kasiomobile-cisza-s'))); if (v >= 2 && v <= 20) s = Math.round(v); } catch { /* bez pamięci */ }
+      const ile = el('output', { class: 'menu-cisza-ile', text: `${s} s` });
+      const suwak = el('input', { type: 'range', min: '2', max: '20', step: '1', value: String(s), 'aria-label': 'Mikrofon kończy po tylu sekundach ciszy' });
+      suwak.addEventListener('input', () => { ile.textContent = `${suwak.value} s`; try { localStorage.setItem('kasiomobile-cisza-s', JSON.stringify(Number(suwak.value))); } catch { /* pełna pamięć */ } });
+      menuOtomoto.append(el('p', { class: 'menu-otomoto-tytul', 'aria-hidden': 'true', text: 'Mikrofon' }),
+        el('label', { class: 'menu-cisza' }, el('span', { class: 'menu-cisza-wiersz' }, el('span', { text: 'Kończy po ciszy' }), ile), suwak));
+    }
     // Próba przewijania „Przewijanie (próba)” stała tu od 29.10 do 1.11.2026. Jacek, 1.11.2026: „ostatnie dwie pozycje są na temat przewijania
     // ekranu … oczywiście ja nie chcę”. Android przewija listę jak stronę (korzen), bez wyboru.
     document.body.append(menuOtomoto);
@@ -1714,7 +1725,7 @@
   logo.addEventListener('click', () => { otworzMenuOtomoto(logo); });
   document.addEventListener('keydown', (e) => {
     if (!menuOtomoto) return;
-    const l = [...menuOtomoto.querySelectorAll('button')], i = l.indexOf(document.activeElement);
+    const l = [...menuOtomoto.querySelectorAll('button, input')], i = l.indexOf(document.activeElement);
     if (e.key === 'Escape') { e.preventDefault(); zamknijMenuOtomoto(true); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); l[(i + 1) % l.length].focus(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); l[(i - 1 + l.length) % l.length].focus(); }
